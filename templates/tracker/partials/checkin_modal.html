@@ -1,0 +1,39 @@
+{% load ui %}
+<div class="modal-bg"><div class="modal-box">
+  <div class="d-flex justify-content-between"><h2 class="h5">Check in — {{ initiative.name }}</h2>
+    <button type="button" class="btn btn-sm btn-outline-secondary" hx-get="{% url 'close_modal' %}" hx-target="#modal" hx-swap="innerHTML">Close</button></div>
+  <form hx-post="{% url 'check_in' eid %}" hx-target="#modal" hx-swap="innerHTML">
+    <div class="ini-modal-row">
+      <label class="form-label" for="{{ form.text.id_for_label }}">What's changed?</label>
+      {{ form.text }}
+      {% for e in form.text.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    </div>
+    <div class="row g-2 ini-modal-row">
+      <div class="col-sm-4"><label class="form-label" for="{{ form.go_live.id_for_label }}">Go-live date</label>{{ form.go_live }}{% for e in form.go_live.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+      {% if milestone %}
+      <div class="col-sm-5"><label class="form-label" for="{{ form.forecast.id_for_label }}">{{ milestone.name }} · forecast</label>{{ form.forecast }}{% for e in form.forecast.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+      <div class="col-sm-3"><label class="form-label" for="{{ form.pct_complete.id_for_label }}">% complete</label>{{ form.pct_complete }}{% for e in form.pct_complete.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+      {% endif %}
+    </div>
+    {% if rows %}
+    <div class="ini-modal-row"><label class="form-label">Controls</label>
+      {% for r in rows %}
+      <div class="border-top py-2">
+        <b>{{ r.control.control_id }}</b> <span class="small">{{ r.control.name }}</span> {% readiness_pill r.impact.readiness %}
+        {% if r.impact.review_comment and r.impact.readiness == "sent_back" %}<div class="ini-ctl-comment">{{ r.impact.review_comment }}</div>{% endif %}
+        <div class="ini-radios mt-1">
+          {% for value, label in choices %}<label><input type="radio" name="ctl_{{ r.impact.entity_id }}" value="{{ value }}" {% if r.choice == value %}checked{% endif %}> {{ label }}</label>{% endfor %}
+          <input type="url" name="ev_{{ r.impact.entity_id }}" value="{{ r.evidence }}" class="form-control form-control-sm" placeholder="Evidence link (to submit for review)" aria-label="Evidence link">
+        </div>
+        {% if r.error %}<div class="text-danger small">{{ r.error }}</div>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <div class="row g-2 ini-modal-row">
+      <div class="col-sm-9"><label class="form-label" for="{{ form.risk_title.id_for_label }}">New risk (optional)</label>{{ form.risk_title }}</div>
+      <div class="col-sm-3"><label class="form-label" for="{{ form.risk_rating.id_for_label }}">Rating</label>{{ form.risk_rating }}</div>
+    </div>
+    <div class="ini-modal-row"><button class="btn btn-primary btn-sm">Post check-in</button></div>
+  </form>
+</div></div>

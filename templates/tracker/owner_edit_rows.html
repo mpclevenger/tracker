@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · IT Initiative Risk Tracker{% endblock %}
+{% block content %}
+<style>
+  .rows-table td { vertical-align: top; min-width: 90px; }
+  .rows-table textarea { min-width: 180px; }
+  .rows-table input[type=date] { min-width: 130px; }
+</style>
+<h1>{{ title }}</h1>
+<p class="muted">{{ initiative.name }} · {{ help }}</p>
+<form method="post">{% csrf_token %}
+  {{ formset.management_form }}
+  {% if formset.non_form_errors %}<div class="alert alert-warning py-2">{{ formset.non_form_errors }}</div>{% endif %}
+  <div class="card"><div class="table-responsive"><table class="table rows-table mb-0">
+    <thead><tr>
+      {% for name, label in columns %}<th>{{ label }}</th>{% endfor %}
+      <th>Retire</th>
+    </tr></thead>
+    <tbody>
+    {% for form, cells in rows %}
+      <tr>
+        {% for field in cells %}
+        <td>
+          {% if forloop.first %}{{ form.entity_id }}{% endif %}
+          {{ field }}
+          {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          {% if forloop.first %}{% for e in form.non_field_errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}{% endif %}
+        </td>
+        {% endfor %}
+        <td>{{ form.delete }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div></div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary btn-sm">Save changes</button>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'initiative' initiative.entity_id %}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

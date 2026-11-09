@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Meetings · IT Initiative Risk Tracker{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center gap-3 flex-wrap mb-3">
+  <h1 class="m-0 flex-grow-1">Meetings</h1>
+  {% if actor.is_tech_risk %}<a class="btn btn-primary btn-sm" href="{% url 'meetings:new' %}">Log a meeting</a>{% endif %}
+</div>
+
+<form method="get" class="d-flex align-items-center gap-3 flex-wrap mb-3">
+  <label class="small muted" for="f-initiative">Initiative</label>
+  <select id="f-initiative" name="initiative" class="form-select form-select-sm w-auto">
+    <option value="">All initiatives</option>
+    {% for i in filter_choices %}<option value="{{ i.entity_id }}" {% if selected == i.entity_id %}selected{% endif %}>{{ i.name }}</option>{% endfor %}
+  </select>
+  <div class="form-check m-0">
+    <input class="form-check-input" type="checkbox" id="f-open" name="open" value="1" {% if open_only %}checked{% endif %}>
+    <label class="form-check-label small" for="f-open">Open follow-ups only</label>
+  </div>
+  <button type="submit" class="btn btn-sm btn-outline-secondary">Apply</button>
+</form>
+
+{% for c in cards %}
+{% with m=c.meeting %}
+<div class="card"><div class="card-body">
+  <div class="d-flex align-items-baseline gap-2 flex-wrap mb-1">
+    <b>{{ m.held_on|short_date }}</b>{% include "meetings/partials/stage_pill.html" with stage=c.stage %}
+    {% for i in c.initiatives %}<a class="pill outline text-decoration-none" href="{% url 'initiative' i.entity_id %}">{{ i.name }}</a>{% endfor %}
+    <span class="flex-grow-1"></span>
+    {% if actor.is_tech_risk %}<a class="small" href="{% url 'meetings:edit' m.entity_id %}">Edit</a>{% endif %}
+  </div>
+  {% include "meetings/partials/meeting_fields.html" %}
+  {% include "meetings/partials/followups_table.html" with followups=c.followups %}
+</div></div>
+{% endwith %}
+{% empty %}
+<div class="card"><div class="card-body muted">No meetings logged{% if selected or open_only %} for this filter{% endif %}.</div></div>
+{% endfor %}
+{% endblock %}

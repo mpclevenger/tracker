@@ -1,0 +1,6 @@
+<div class="modal-bg"><div class="modal-box">
+  <div class="d-flex justify-content-between"><h2 class="h5">Copy reminder — {{ initiative.name }}</h2>
+    <button type="button" class="btn btn-sm btn-outline-secondary" hx-get="{% url 'close_modal' %}" hx-target="#modal" hx-swap="innerHTML">Close</button></div>
+  <label class="form-label small muted mb-1" for="reminder-text">Copy this message</label>
+  <textarea id="reminder-text" class="form-control" rows="{{ rows }}" readonly>{{ text }}</textarea>
+</div></div>

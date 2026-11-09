@@ -1,0 +1,4 @@
+<select name="visibility" class="form-select form-select-sm d-inline-block w-auto" aria-label="Visibility"
+        hx-post="{% url 'set_visibility' eid kind item_entity %}" hx-trigger="change" hx-include="this" hx-swap="none">
+  {% for value, label in visibility_choices %}<option value="{{ value }}" {% if value == current %}selected{% endif %}>{{ label }}</option>{% endfor %}
+</select>

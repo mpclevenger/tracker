@@ -1,0 +1,25 @@
+{% load ui %}
+{% if followups %}
+<table class="table table-sm align-middle mb-0 mt-2">
+  <thead><tr><th>Follow-up</th><th style="width:14%">Owner</th><th style="width:12%">Due</th><th style="width:30%">Status</th>{% if actor.is_tech_risk %}<th style="width:9%"></th>{% endif %}</tr></thead>
+  <tbody>
+  {% for f in followups %}
+  <tr>
+    <td>{{ f.text }}</td>
+    <td class="small">{{ f.owner|default:"—" }}</td>
+    <td class="small">{{ f.due_date|short_date }}</td>
+    <td class="small">
+      {% if f.status == "done" %}Done {{ f.closed_on|short_date }}{% if f.closure_note %} — {{ f.closure_note }}{% endif %}
+      {% else %}Open {% if f.is_overdue %}{% include "meetings/partials/overdue_pill.html" %}{% endif %}{% endif %}
+    </td>
+    {% if actor.is_tech_risk %}
+    <td class="small">
+      {% if f.status == "open" %}<a href="{% url 'meetings:followup_close' f.entity_id %}">Close</a>
+      {% else %}<form method="post" action="{% url 'meetings:followup_reopen' f.entity_id %}" class="m-0">{% csrf_token %}<button class="btn btn-link btn-sm p-0">Reopen</button></form>{% endif %}
+    </td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}

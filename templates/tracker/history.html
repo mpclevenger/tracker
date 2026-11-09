@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}History · {{ initiative.name }}{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-3">
+  <h1 class="m-0 flex-grow-1">History — {{ initiative.name }}</h1>
+  <a href="{% url 'initiative' initiative.entity_id %}">Back to initiative</a>
+</div>
+
+<div class="card"><div class="card-body">
+  <h2 class="h6">Compare two points in time</h2>
+  <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+    <label class="small muted" for="h-from">From</label>
+    <input id="h-from" type="date" name="from" value="{{ from_date|date:'Y-m-d' }}" class="form-control form-control-sm w-auto">
+    <label class="small muted" for="h-to">To</label>
+    <input id="h-to" type="date" name="to" value="{{ to_date|date:'Y-m-d' }}" class="form-control form-control-sm w-auto">
+    <button type="submit" class="btn btn-sm btn-outline-secondary">Compare</button>
+  </form>
+  <table class="table table-sm mt-3">
+    <thead><tr><th>Entity</th><th>Change from {{ from_date|short_date }} to {{ to_date|short_date }}</th></tr></thead>
+    <tbody>
+    {% for c in comparison %}
+    <tr><td>{{ c.entity }}</td>
+      <td class="small diff">{% if c.state == "added" %}<ins>added</ins>{% elif c.state == "removed" %}<del>removed</del>{% else %}{% for f in c.fields %}<div>{{ f.field }}: <del>{{ f.old }}</del> → <ins>{{ f.new }}</ins></div>{% endfor %}{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="2" class="muted">No differences between these two points.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div></div>
+
+<div class="card"><div class="card-body">
+  <h2 class="h6">All changes ({{ rows|length }})</h2>
+  <table class="table table-sm">
+    <thead><tr><th>When</th><th>Who</th><th>Entity</th><th>Field</th><th>From</th><th>To</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+    <tr><td class="small text-nowrap">{{ r.when|date:"M j, Y H:i" }}</td><td class="small">{{ r.who|person }}</td><td class="small">{{ r.entity }}</td><td class="small">{{ r.field }}</td>
+      <td class="small diff">{% if r.created %}<span class="muted">—</span>{% else %}<del>{{ r.old }}</del>{% endif %}</td><td class="small diff"><ins>{{ r.new }}</ins></td></tr>
+    {% empty %}<tr><td colspan="6" class="muted">No recorded changes.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div></div>
+{% endblock %}

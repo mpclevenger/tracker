@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Snapshots · Workbench · IT Initiative Risk Tracker{% endblock %}
+{% block content %}
+{% include "tracker/partials/wb_tabs.html" %}
+<div class="card"><div class="card-body">
+  <h2 class="h6">Snapshot readiness</h2>
+  <p class="small muted">Last snapshot: {% if last_snapshot %}{{ last_snapshot.label }}, {{ last_snapshot.taken_at|short_date }}{% else %}none{% endif %}</p>
+  <table class="table table-sm align-middle">
+    <thead><tr><th>Initiative</th><th>Highlights set (1–3)</th><th>Reviewed since last snapshot</th><th>Override reviewed</th><th>Missed check-in followed up</th><th></th></tr></thead>
+    <tbody>
+    {% for item in readiness %}{% with r=item.r %}
+    <tr>
+      <td><a href="{% url 'initiative' r.bundle.initiative.entity_id %}">{{ r.bundle.initiative.name }}</a></td>
+      <td>{% if r.highlights_ok %}<span style="color:var(--green)">✓</span>{% else %}<span style="color:var(--red)">✗</span>{% endif %} <span class="small muted">{{ r.highlights }} highlight{{ r.highlights|pluralize }}</span></td>
+      <td>{% if r.curated_ok %}<span style="color:var(--green)">✓</span>{% else %}<span style="color:var(--red)">✗</span>{% endif %} <span class="small muted">{% if r.bundle.last_curated %}{{ r.bundle.last_curated|short_date }}{% else %}never{% endif %}</span></td>
+      <td>{% if r.override %}{% if r.override_ok %}<span style="color:var(--green)">✓</span>{% else %}<span style="color:var(--red)">✗</span>{% endif %} <span class="small muted">set {{ r.override.effective_from|short_date }}</span>{% else %}<span class="muted small">no override</span>{% endif %}</td>
+      <td>{% if r.stale %}{% if r.stale_ok %}<span style="color:var(--green)">✓</span>{% else %}<span style="color:var(--red)">✗</span>{% endif %} <span class="small muted">{{ item.stale_days }}d without check-in</span>{% else %}<span class="muted small">not stale</span>{% endif %}</td>
+      <td>{% if r.ready %}<span class="small" style="color:var(--green)">Ready</span>{% else %}<a class="small" href="{% url 'initiative' r.bundle.initiative.entity_id %}">Open →</a>{% endif %}</td>
+    </tr>
+    {% endwith %}{% empty %}
+    <tr><td colspan="6" class="muted">No active initiatives.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <div class="d-flex align-items-center gap-3 mt-2">
+    <a class="btn btn-sm btn-outline-secondary" href="{% url 'exec_summary' %}">Preview as Senior Management</a>
+  </div>
+</div></div>
+
+<div class="card"><div class="card-body">
+  <h2 class="h6">Take snapshot</h2>
+  <form method="post" action="{% url 'take_snapshot' %}" class="d-flex gap-2 align-items-center flex-wrap m-0">{% csrf_token %}
+    <input name="label" class="form-control form-control-sm" style="flex:1;min-width:220px" placeholder="Label, e.g. Nov 2026 leadership pack" required>
+    <input name="note" class="form-control form-control-sm" style="flex:1;min-width:220px" placeholder="Note (optional)">
+    <button type="submit" class="btn btn-sm btn-primary">Take snapshot</button>
+  </form>
+</div></div>
+
+<div class="card"><div class="card-body">
+  <h2 class="h6">Past snapshots</h2>
+  <table class="table table-sm">
+    <thead><tr><th>Label</th><th>Taken</th><th>By</th><th>Note</th><th></th></tr></thead>
+    <tbody>
+    {% for s in past_snapshots %}
+    <tr><td>{{ s.label }}</td><td>{{ s.taken_at|date:"M j, Y H:i" }}</td><td>{{ s.taken_by|person }}</td><td class="small">{{ s.note }}</td>
+      <td><a class="small" href="{% url 'exec_summary' %}?snapshot={{ s.pk }}">view</a></td></tr>
+    {% empty %}<tr><td colspan="5" class="muted">No snapshots yet.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div></div>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Audit · IT Initiative Risk Tracker{% endblock %}
+{% block content %}
+<h1>Audit</h1>
+<div class="card"><div class="card-body">
+  <h2 class="h6">Point in time</h2>
+  <div class="d-flex gap-4 flex-wrap">
+    <form method="get" action="{% url 'exec_summary' %}" class="m-0">
+      <label class="small muted" for="aud-snapshot">Snapshot (as presented)</label><br>
+      <select id="aud-snapshot" name="snapshot" class="form-select form-select-sm d-inline-block w-auto">
+        <option value="">Live data</option>
+        {% for s in snapshots %}<option value="{{ s.pk }}">{{ s.label }} · {{ s.taken_at|short_date }}</option>{% endfor %}
+      </select>
+      <button type="submit" class="btn btn-sm btn-outline-secondary">View</button>
+    </form>
+    <form method="get" action="{% url 'exec_summary' %}" class="m-0">
+      <label class="small muted" for="aud-asof">As of a date (latest snapshot on or before it)</label><br>
+      <input id="aud-asof" type="date" name="as_of" value="{{ today|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}" class="form-control form-control-sm d-inline-block w-auto">
+      <button type="submit" class="btn btn-sm btn-outline-secondary">View</button>
+    </form>
+  </div>
+</div></div>
+
+<div class="card mt-3"><div class="card-body">
+  <h2 class="h6">Snapshot records</h2>
+  <p class="small muted">Everything each snapshot froze, including stages, sign-offs and controls.</p>
+  <ul class="mb-0">{% for s in snapshots %}<li><a href="{% url 'snapshot_record' s.pk %}">{{ s.label }}</a> · {{ s.taken_at|short_date }} · {{ s.taken_by|person }}</li>{% empty %}<li class="muted">No snapshots yet.</li>{% endfor %}</ul>
+</div></div>
+{% endblock %}

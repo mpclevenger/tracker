@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}My initiatives · IT Initiative Risk Tracker{% endblock %}
+{% block content %}
+<h1>My initiatives</h1>
+<div class="card"><table class="table mb-0">
+  <thead><tr><th>Initiative</th><th>Status</th><th>Phase</th><th>Target go-live</th></tr></thead>
+  <tbody>
+  {% for i in initiatives %}
+    <tr>
+      <td><a href="{% url 'initiative' i.entity_id %}">{{ i.name }}</a></td>
+      <td>{{ i.get_status_display }}</td>
+      <td>{{ i.phase|default:"—" }}</td>
+      <td>{{ i.target_go_live|short_date }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% endblock %}

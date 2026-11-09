@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Switch user{% endblock %}
+{% block content %}
+<h1 class="h4">Switch user <span class="badge text-bg-warning">dev mode</span></h1>
+<p class="text-secondary">Demo-only. In production the SSO add-on supplies the employee ID.</p>
+<table class="table table-sm w-auto">
+  <thead><tr><th>Employee</th><th>Roles</th><th></th></tr></thead>
+  <tbody>
+  {% for person, roles in people %}
+    <tr>
+      <td>{{ person.display_name }} <span class="text-secondary">{{ person.emp_id }}</span></td>
+      <td>{{ roles|join:", "|default:"—" }}</td>
+      <td>
+        <form method="post" class="d-inline">{% csrf_token %}
+          <input type="hidden" name="emp_id" value="{{ person.emp_id }}">
+          <input type="hidden" name="next" value="{{ request.GET.next }}">
+          <button class="btn btn-sm btn-outline-primary">Use</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+<form method="post" class="row g-2 align-items-end w-auto">{% csrf_token %}
+  <input type="hidden" name="next" value="{{ request.GET.next }}">
+  <div class="col-auto"><label class="form-label">Employee ID</label><input name="emp_id" class="form-control form-control-sm" required></div>
+  <div class="col-auto"><label class="form-label">Display name</label><input name="display_name" class="form-control form-control-sm"></div>
+  <div class="col-auto"><button class="btn btn-sm btn-primary">Use new ID</button></div>
+</form>
+{% endblock %}

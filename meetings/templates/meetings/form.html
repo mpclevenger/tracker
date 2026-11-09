@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{% if meeting %}Edit meeting{% else %}Log a meeting{% endif %} · IT Initiative Risk Tracker{% endblock %}
+{% block content %}
+<h1>{% if meeting %}Edit meeting{% else %}Log a meeting{% endif %}</h1>
+<form method="post">{% csrf_token %}
+  <div class="card"><div class="card-body">
+    <div class="row g-2 mb-2">
+      <div class="col-auto">{% include "meetings/partials/field.html" with field=form.held_on %}</div>
+      <div class="col">{% include "meetings/partials/field.html" with field=form.stage %}</div>
+    </div>
+    {% for field in form %}{% if field.name != "initiatives" and field.name != "held_on" and field.name != "stage" %}
+      <div class="mb-2">{% include "meetings/partials/field.html" with field=field %}</div>
+    {% endif %}{% endfor %}
+    <div class="mb-0">
+      <div class="form-label mb-0">{{ form.initiatives.label }}</div>
+      {% for box in form.initiatives %}
+      <div class="form-check"><label class="form-check-label">{{ box.tag }} {{ box.choice_label }}</label></div>
+      {% empty %}<span class="muted small">No initiatives yet.</span>{% endfor %}
+      {% for e in form.initiatives.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    </div>
+  </div></div>
+
+  <h2 class="sect">Follow-ups</h2>
+  {{ formset.management_form }}
+  {% for e in formset.non_form_errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+  <table class="table table-sm align-middle bg-white">
+    <thead><tr><th>Follow-up</th><th style="width:16%">Owner</th><th style="width:14%">Due</th><th style="width:20%">Initiative</th><th style="width:7%">Delete</th></tr></thead>
+    <tbody>
+    {% for f in formset %}
+    <tr>
+      <td>{{ f.entity_id }}{{ f.text }}{% for e in f.text.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
+      <td>{{ f.owner }}</td>
+      <td>{{ f.due_date }}{% for e in f.due_date.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
+      <td>{{ f.initiative }}{% for e in f.initiative.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
+      <td>{{ f.DELETE }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <button class="btn btn-primary btn-sm">Save meeting</button>
+  <a class="btn btn-link btn-sm" href="{% url 'meetings:list' %}">Cancel</a>
+</form>
+{% endblock %}

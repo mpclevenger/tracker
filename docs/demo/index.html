@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IT Initiative Risk Tracker — clickable demo</title>
+<style>
+:root{color-scheme:light;--bg:#f6f7f9;--card:#fff;--ink:#1f2328;--muted:#656d76;--line:#d0d7de;--accent:#0969da;
+--green:#1a7f37;--amber:#bf8700;--red:#cf222e;--grey:#6e7781;--internal:#8250df}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+header{background:#24292f;color:#fff;padding:8px 16px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+header .brand{font-weight:600;font-size:15px}header nav a{color:#cdd9e5;margin-right:14px}header nav a.on{color:#fff;border-bottom:2px solid #fff;padding-bottom:4px}
+header .right{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px}
+select,input,textarea,button{font:inherit}select,input,textarea{border:1px solid var(--line);border-radius:6px;padding:5px 8px;background:#fff;color:var(--ink)}
+button{border:1px solid #8c959f;background:#fff;color:var(--ink);border-radius:6px;padding:5px 10px;cursor:pointer}button:hover{background:#ddf4ff}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}button.primary:hover{background:#0860ca}
+button.sm{padding:2px 8px;font-size:12px}
+.demo-bar{background:#fff8c5;border-bottom:1px solid #d4a72c;padding:5px 16px;font-size:12.5px}
+.banner{background:#ddf4ff;border-bottom:1px solid #54aeff;padding:6px 16px;font-size:13px}
+.banner.snap{background:#fbefff;border-color:#c297ff}
+main{padding:16px;max-width:1500px;margin:0 auto}
+h1{font-size:20px;margin:0 0 12px}h2{font-size:16px;margin:18px 0 8px}h2.sect{margin:20px 0 6px;padding-bottom:4px;border-bottom:2px solid var(--line)}h3{font-size:14px;margin:12px 0 6px}
+.muted{color:var(--muted)}.small{font-size:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:12px}
+.strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
+.strip .card{margin:0}.strip .n{font-size:26px;font-weight:600}.strip .lbl{color:var(--muted);font-size:12.5px}
+.rags{display:flex;gap:6px;margin-top:4px}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:600;color:#fff;vertical-align:middle}
+.pill.green{background:var(--green)}.pill.amber{background:var(--amber)}.pill.red{background:var(--red)}.pill.grey{background:var(--grey)}
+.pill.outline{background:#fff;border:1px solid var(--line);color:var(--ink);font-weight:500}
+.pill.stale{background:#fff;color:var(--grey);border:1px dashed var(--grey)}
+.pill.override{background:#fff;border:1px solid var(--internal);color:var(--internal)}
+.tag{display:inline-block;padding:0 6px;border-radius:4px;font-size:11px;border:1px solid var(--line);color:var(--muted);margin-left:4px;vertical-align:middle}
+.tag.internal{color:var(--internal);border-color:var(--internal)}.tag.owner{color:#0550ae;border-color:#54aeff}.tag.exec{color:var(--green);border-color:#4ac26b}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.tile{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px;cursor:pointer;border-left:5px solid var(--grey)}
+.tile.green{border-left-color:var(--green)}.tile.amber{border-left-color:var(--amber)}.tile.red{border-left-color:var(--red)}
+.tile:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}.tile h3{margin:0 0 4px;font-size:15px}
+.tile .meta{color:var(--muted);font-size:12.5px;margin:2px 0}.tile ul{margin:6px 0 0;padding-left:18px;font-size:13px}
+table{border-collapse:collapse;width:100%;background:#fff}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top;font-size:13px}th{background:#f6f8fa;font-weight:600;color:#444}
+tr.hidden-row td{opacity:.55;background:#fafbfc}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.grid3{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+@media(max-width:900px){.grid2,.grid3,.strip{grid-template-columns:1fr}}
+.kv{display:grid;grid-template-columns:160px 1fr;gap:4px 12px;font-size:13px}.kv dt{color:var(--muted)}.kv dd{margin:0}
+.note{background:#f6f8fa;border-left:3px solid var(--line);padding:6px 10px;margin:6px 0;border-radius:4px}
+.note.internal{border-left-color:var(--internal);background:#fbf7ff}.note.owner{border-left-color:#54aeff}
+.diff ins{background:#dafbe1;text-decoration:none}.diff del{background:#ffebe9}
+svg text{font-family:inherit}
+.trend{font-size:12px}.trend.up{color:var(--red)}.trend.down{color:var(--green)}
+form.f label{display:block;font-size:12.5px;color:var(--muted);margin:8px 0 2px}form.f input,form.f textarea,form.f select{width:100%}
+.toast{position:fixed;bottom:18px;right:18px;background:#24292f;color:#fff;padding:10px 14px;border-radius:8px;opacity:0;transition:.3s;pointer-events:none}.toast.show{opacity:1}
+.tabs{display:flex;gap:6px;border-bottom:2px solid var(--accent);margin-bottom:12px}.tabs button{border:1px solid #8c959f;border-bottom:none;border-radius:6px 6px 0 0;background:#fff;color:var(--ink);padding:8px 18px;font-size:14px;margin-bottom:-2px}.tabs button:hover{background:#ddf4ff}.tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.warn{background:#fff8c5;border:1px solid #d4a72c;padding:8px 10px;border-radius:6px}
+.legend span{margin-right:12px;font-size:12px}
+.swatch{display:inline-block;width:12px;height:12px;vertical-align:-2px;margin-right:4px;border-radius:2px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:50}
+.modal{background:#fff;border-radius:10px;max-width:640px;width:92%;max-height:85vh;overflow:auto;padding:18px 20px;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.sum{display:flex;flex-wrap:wrap;gap:8px 26px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-bottom:12px}
+.fact .l{display:block;font-size:11.5px;color:var(--muted)}.fact .v{font-size:13.5px}.fact .v .red{color:var(--red);font-weight:600}.fact .v .amber{color:var(--amber);font-weight:600}
+.chip{display:inline-block;padding:0 7px;border-radius:4px;font-size:12px;font-weight:600;border:1px solid var(--line);vertical-align:middle}
+.chip.red{color:var(--red);border-color:var(--red);background:#ffebe9}.chip.amber{color:#7d4e00;border-color:var(--amber);background:#fff8c5}.chip.grn,.chip.green{color:var(--green);border-color:#4ac26b;background:#dafbe1}
+.seg{display:flex;gap:6px;flex-wrap:wrap}.seg button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.modal h2{margin:0 0 10px}.modal .close{float:right}
+.stats{display:flex;gap:8px;margin:6px 0 4px}.stat{flex:1;border-radius:6px;padding:4px 8px;color:#fff}.stat-top{display:flex;align-items:baseline;gap:6px}.stat-mv{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 2px}.stat b{font-size:22px;line-height:1.1}.stat span{font-size:12px;opacity:.9}.stat.red{background:var(--red)}.stat.amber{background:var(--amber)}.stat.green{background:var(--green)}.stat.closed{background:#57606a}
+.mv{font-size:11.5px;padding:1px 7px;border-radius:999px;background:rgba(255,255,255,.92);color:#1f2328;text-decoration:none;white-space:nowrap}.mv:hover{background:#fff;text-decoration:none}
+.pill.blue{background:var(--accent)}
+.pill.sevHigh,.pill.sevMedium,.pill.sevLow{background:#fff;font-weight:600}
+.pill.sevHigh{border:1px solid var(--red);color:var(--red)}.pill.sevMedium{border:1px solid var(--amber);color:#7d4e00}.pill.sevLow{border:1px solid var(--grey);color:var(--grey)}
+.pill.btn{cursor:pointer}
+form.f label.chk{display:flex;gap:8px;align-items:center;color:var(--ink);font-size:13px;margin:4px 0}form.f label.chk input{width:auto}
+.gl-list{display:flex;flex-direction:column;gap:6px;margin-top:6px}.gl-row{display:flex;gap:10px;align-items:center}.gl-days{min-width:46px;text-align:center;background:#eef1f4;border-radius:6px;padding:2px 4px;line-height:1.1}.gl-days b{display:block;font-size:18px}.gl-days span{font-size:10px;color:var(--muted)}.gl-main{flex:1;min-width:0}.gl-ctl{display:flex;align-items:center;gap:3px;margin-top:3px}.sq{width:12px;height:12px;border-radius:2px;display:inline-block}.sq.green{background:var(--green)}.sq.amber{background:var(--amber)}.sq.red{background:var(--red)}.gl-ctl-txt{font-size:11.5px;color:var(--muted);margin-left:5px}
+.reqtag{display:inline-block;margin:0 6px 2px 0;font-size:12.5px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:help}.reqtag.mine{background:#ddf4ff;border-color:#54aeff}.reqtag b{font-weight:600;margin-right:3px}
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">IT Initiative Risk Tracker</span>
+  <nav id="nav"></nav>
+  <div class="right">
+    <span class="small muted" style="color:#cdd9e5">Viewing as</span>
+    <select id="roleSel"></select>
+  </div>
+</header>
+<div class="demo-bar">Clickable demo · fictional data · changes are not saved</div>
+<div id="banner"></div>
+<main id="app"></main>
+<div class="toast" id="toast"></div>
+<div id="modal"></div>
+
+<script>
+// ---------- synthetic data ----------
+const TODAY = new Date('2026-11-05T12:00:00-05:00');
+const d = s => new Date(s + 'T12:00:00-05:00');
+const fmt = x => x ? new Date(x).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+const fmtDT = x => new Date(x).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+const daysBetween = (a,b) => Math.round((b-a)/86400000);
+const addDays = (dt,n) => new Date(dt.getTime()+n*86400000);
+
+const PEOPLE = {
+  E00001:{name:'Jane',role:'tech_risk'}, E00002:{name:'Mary Jones',role:'tech_risk'},
+  E00101:{name:'John'}, E00102:{name:'Adam Brown'}, E00103:{name:'Sarah Davis'}, E00104:{name:'Mike Wilson'}, E00105:{name:'Lisa Taylor'}, E00106:{name:'Tom Clark'},
+  E00201:{name:'CTO',role:'senior_management'}, E00301:{name:'Emily White',role:'auditor'}
+};
+const name = id => (PEOPLE[id]||{name:id}).name;
+
+const ROLES = [
+  {id:'tech_risk',label:'Tech Risk — Jane',emp:'E00001'},
+  {id:'owner',label:'Initiative Owner — John (SailPoint)',emp:'E00101'},
+  {id:'senior_management',label:'CTO',emp:'E00201'},
+  {id:'auditor',label:'Auditor View',emp:'E00301'},
+];
+
+let THRESH = {amber_slip:30,amber_golive_window:90,amber_stale:30,red_slip:60,red_golive_slip:30,red_golive_window:60,red_stale:60,early_stale:21};
+const THRESH_LABELS = {amber_slip:'Amber: key milestone slip > (days)',amber_golive_window:'Amber: go-live within (days) and control in progress',amber_stale:'Amber: stale > (days)',red_slip:'Red: key milestone slip > (days)',red_golive_slip:'Red: go-live slipped vs baseline > (days)',red_golive_window:'Red: go-live within (days) and control not started/not ready',red_stale:'Red: stale > (days)',early_stale:'Workbench early-warning stale > (days, no RAG effect)'};
+let threshLog = [{at:d('2026-09-01'),by:'E00001',key:'(defaults loaded)',from:'',to:''}];
+
+const CONTROLS = [
+  {id:'ITGC-CM-01',name:'Change approval before production deployment',fw:'SOX ITGC',owner:'Change Mgmt'},
+  {id:'ITGC-LA-01',name:'Joiner / mover / leaver provisioning approval',fw:'SOX ITGC',owner:'IAM'},
+  {id:'ITGC-LA-02',name:'Quarterly user access review',fw:'SOX ITGC',owner:'IAM'},
+  {id:'ITGC-LA-04',name:'Privileged access provisioning approval',fw:'SOX ITGC',owner:'IAM'},
+  {id:'ITGC-CO-03',name:'Batch job monitoring and failure follow-up',fw:'SOX ITGC',owner:'IT Ops'},
+  {id:'FR-REC-07',name:'Daily sub-ledger to GL reconciliation',fw:'Financial reporting',owner:'Finance Ops'},
+  {id:'ITGC-BK-01',name:'Backup completion and restore test',fw:'SOX ITGC',owner:'IT Ops'},
+  {id:'SEC-VM-02',name:'Critical vulnerability remediation within SLA',fw:'Cyber',owner:'Cyber'},
+];
+const SHORT={'ITGC-CM-01':'Change approval','ITGC-LA-01':'Joiner/mover/leaver','ITGC-LA-02':'Access review','ITGC-LA-04':'Privileged access','ITGC-CO-03':'Batch monitoring','FR-REC-07':'Sub-ledger recon','ITGC-BK-01':'Backup and restore','SEC-VM-02':'Vulnerability SLA'};
+const shortName=id=>SHORT[id]||id;
+const TRAC_PATTERN={'ITGC-CM-01':'Change approval','ITGC-LA-01':'Access provisioning','ITGC-LA-02':'Periodic access review','ITGC-LA-04':'Privileged access approval','ITGC-CO-03':'Job monitoring','FR-REC-07':'Reconciliation review','ITGC-BK-01':'Backup and restore','SEC-VM-02':'Vulnerability remediation'};
+let controlUploads = [{at:d('2026-10-02'),by:'E00001',file:'control_library_2026Q4.xlsx',rows:8,note:'Q4 refresh'}];
+
+// Initiatives. Each has version history so "as-of" and "history" views have something to show.
+let INITS = [
+  {id:'cbm',name:'SailPoint Onboarding',owner:'E00101',sponsor:'CISO',status:'active',phase:'Build',
+   desc:'Onboard SailPoint as the identity governance platform: joiner/mover/leaver provisioning and quarterly access certifications. Wave 1 covers the 12 in-scope SOX applications.',why:'Replaces manual user access reviews and provisioning approvals for every SOX application; the certification evidence auditors rely on changes shape.',
+   baseline:d('2026-12-15'),goLive:d('2027-01-19'),accepted:d('2026-07-14'),
+   phases:[['Design','2026-07-01','2026-08-15','2026-07-01','2026-08-20',1],['Build','2026-08-16','2026-10-31','2026-08-21','2026-11-20',2],['Test','2026-11-01','2026-12-05','2026-11-21','2027-01-05',3],['Cutover','2026-12-06','2026-12-15','2027-01-06','2027-01-19',4],['Hypercare','2026-12-16','2027-01-31','2027-01-20','2027-03-05',5]],
+   milestones:[{n:'Connector design sign-off',p:'2026-08-15',f:'2026-08-20',a:'2026-08-20',pct:100,st:'done',key:true},{n:'Wave 1 connectors built',p:'2026-10-31',f:'2026-11-20',a:null,pct:85,st:'slipped',key:true,note:'ERP and HR connector defects'},{n:'Certification dry run (UAT exit)',p:'2026-12-05',f:'2027-01-05',a:null,pct:20,st:'slipped',key:true},{n:'Go-live (Wave 1)',p:'2026-12-15',f:'2027-01-19',a:null,pct:0,st:'slipped',key:true}],
+   risks:[{t:'risk',title:'Certification evidence format not yet agreed with Internal Audit',r:'H',owner:'John',tgt:'2026-11-25',st:'open',mit:'Walkthrough of SailPoint certification reports booked with Internal Audit; manual UAR runs in parallel for Q4.',src:'owner',vis:'exec'},
+          {t:'issue',title:'ERP and HR connector defects delaying build exit',r:'M',owner:'Vendor PM',tgt:'2026-11-20',st:'mitigating',mit:'Weekly defect triage with vendor.',src:'owner',vis:'exec'},
+          {t:'dependency',title:'HR feed must supply employee ID for all contractors',r:'M',owner:'HR Systems',tgt:'2026-12-01',st:'open',mit:'',src:'tech_risk',vis:'owner'},
+          {t:'risk',title:'Go-live overlaps the Q4 access certification cycle — risk of two certifications or none',r:'H',owner:'Tech Risk',tgt:'2026-12-01',st:'open',mit:'Challenge raised with sponsor; February go-live under discussion.',src:'tech_risk',vis:'internal'}],
+   controls:[{c:'ITGC-LA-02',type:'modified',comp:'Manual Q4 user access review runs in parallel',ready:'submitted',ev:'https://evidence.example/sailpoint/uar',sBy:'E00101',sAt:d('2026-11-03')},{c:'ITGC-LA-04',type:'modified',comp:'',ready:'not_started',ev:''},{c:'ITGC-LA-01',type:'new',comp:'Manual provisioning approvals continue until cutover',ready:'in_progress',ev:''},{c:'ITGC-CM-01',type:'modified',comp:'',ready:'ready',ev:'https://evidence.example/sailpoint/cm'}],
+   overlays:[{t:'commentary',text:'Program has re-planned twice. Our concern is the Q4 certification cycle and the audit evidence it produces, not the connectors.',vis:'exec'},
+             {t:'highlight',text:'January go-live overlaps the Q4 access certification cycle; decision needed on which tool certifies Q4',vis:'exec'},
+             {t:'highlight',text:'Certification evidence format still to be agreed with Internal Audit',vis:'exec'},
+             {t:'highlight',text:'Privileged access provisioning through SailPoint not started — manual approvals continue',vis:'exec'},
+             {t:'internal_note',text:'Sponsor pushing for January to hit the OKR. Escalate to CTO if no decision on the Q4 cycle by 15 Nov.',vis:'internal'}],
+   updates:[{at:d('2026-10-30'),by:'E00101',text:'Build exit re-forecast to 20 Nov. Connector defect count down from 41 to 18. Go-live moved to 19 Jan after steering committee.',diff:{goLive:['Dec 15, 2026','Jan 19, 2027'],'milestone Wave 1 connectors built.forecast':['Nov 10, 2026','Nov 20, 2026']}},
+            {at:d('2026-10-09'),by:'E00101',text:'ERP and HR connector defects slowing build exit; forecast 10 Nov. Certification report walkthrough scheduled with Internal Audit.',diff:{'milestone Wave 1 connectors built.forecast':['Oct 31, 2026','Nov 10, 2026'],'milestone Wave 1 connectors built.status':['on_track','slipped']}},
+            {at:d('2026-09-18'),by:'E00101',text:'Build 60% complete, on plan. 8 of 12 connectors configured.',diff:{}}],
+   override:null,
+   history:[{at:d('2026-07-14'),by:'E00001',field:'status',from:'proposed',to:'active'},{at:d('2026-10-09'),by:'E00101',field:'Wave 1 connectors built · forecast',from:'Oct 31, 2026',to:'Nov 10, 2026'},{at:d('2026-10-09'),by:'E00101',field:'Wave 1 connectors built · status',from:'on_track',to:'slipped'},{at:d('2026-10-30'),by:'E00101',field:'target_go_live',from:'Dec 15, 2026',to:'Jan 19, 2027'},{at:d('2026-10-30'),by:'E00101',field:'Go-live (Wave 1) · forecast',from:'Dec 15, 2026',to:'Jan 19, 2027'},{at:d('2026-11-02'),by:'E00001',field:'risk "Go-live overlaps the Q4 access certification cycle" · visibility',from:'owner',to:'internal'}]},
+
+  {id:'idp',name:'ServiceNow ITSM Migration',owner:'E00102',sponsor:'Head of IT Operations',status:'active',phase:'Design',
+   desc:'Move incident, change and problem management from the legacy ticketing tool to ServiceNow.',why:'Change approval evidence for every SOX system moves to a new tool mid-year.',
+   baseline:d('2027-05-31'),goLive:d('2027-05-31'),accepted:d('2026-09-02'),
+   phases:[['Discovery','2026-09-01','2026-10-15','2026-09-01','2026-10-15',1],['Design','2026-10-16','2026-12-20','2026-10-16','2026-12-20',1],['Build','2027-01-04','2027-03-31','2027-01-04','2027-03-31',2],['Rollout','2027-04-01','2027-05-31','2027-04-01','2027-05-31',4]],
+   milestones:[{n:'Discovery complete',p:'2026-10-15',f:'2026-10-15',a:'2026-10-14',pct:100,st:'done',key:false},{n:'Design sign-off',p:'2026-12-20',f:'2026-12-20',a:null,pct:45,st:'on_track',key:true},{n:'Pilot wave',p:'2027-02-28',f:'2027-02-28',a:null,pct:0,st:'planned',key:true},{n:'Go-live',p:'2027-05-31',f:'2027-05-31',a:null,pct:0,st:'planned',key:true}],
+   risks:[{t:'risk',title:'Change approval evidence split across two tools during transition',r:'M',owner:'Adam Brown',tgt:'2027-01-15',st:'open',mit:'Hard cut-over date per system; legacy tool read-only afterwards.',src:'owner',vis:'exec'},{t:'dependency',title:'CMDB data quality for in-scope configuration items',r:'L',owner:'IT Ops',tgt:'2026-12-01',st:'open',mit:'',src:'owner',vis:'exec'}],
+   controls:[{c:'ITGC-CM-01',type:'modified',comp:'',ready:'in_progress',ev:''},{c:'ITGC-CO-03',type:'modified',comp:'',ready:'in_progress',ev:''}],
+   overlays:[{t:'commentary',text:'Well run so far. Our focus is a clean cut of change-approval evidence between the two tools.',vis:'exec'},{t:'highlight',text:'On plan; continuity of change-approval evidence across the two tools is the control question',vis:'exec'},{t:'internal_note',text:'Adam is a strong owner — low touch needed.',vis:'internal'}],
+   updates:[{at:d('2026-10-28'),by:'E00102',text:'Design 45% complete. Change workflow drafted; reviewing approval model with Tech Risk next week.',diff:{}},{at:d('2026-10-14'),by:'E00102',text:'Discovery closed one day early. 3,100 open tickets profiled; 14 in-scope systems confirmed.',diff:{'milestone Discovery complete.status':['on_track','done']}}],
+   override:null,history:[{at:d('2026-09-02'),by:'E00001',field:'status',from:'proposed',to:'active'},{at:d('2026-10-14'),by:'E00102',field:'Discovery complete · status',from:'on_track',to:'done'}]},
+
+  {id:'erp',name:'ERP Cloud Upgrade',owner:'E00104',sponsor:'CFO',status:'active',phase:'Test',
+   desc:'Move ERP from on-prem to vendor cloud; same version, new hosting.',why:'Hosting change affects backup, batch monitoring and change management evidence.',
+   baseline:d('2026-12-05'),goLive:d('2026-12-05'),accepted:d('2026-06-10'),
+   phases:[['Plan','2026-06-01','2026-07-15','2026-06-01','2026-07-15',1],['Migrate','2026-07-16','2026-09-30','2026-07-16','2026-10-05',2],['Test','2026-10-01','2026-11-20','2026-10-06','2026-11-20',3],['Cutover','2026-11-21','2026-12-05','2026-11-21','2026-12-05',4],['Hypercare','2026-12-06','2027-01-15','2026-12-06','2027-01-15',5]],
+   milestones:[{n:'Migration rehearsal',p:'2026-09-30',f:'2026-10-05',a:'2026-10-05',pct:100,st:'done',key:true},{n:'Test exit',p:'2026-11-20',f:'2026-11-20',a:null,pct:70,st:'on_track',key:true},{n:'Go-live',p:'2026-12-05',f:'2026-12-05',a:null,pct:0,st:'on_track',key:true}],
+   risks:[{t:'issue',title:'Backup restore test in cloud not yet evidenced',r:'H',owner:'Mike Wilson',tgt:'2026-11-15',st:'mitigating',mit:'Restore test scheduled 12 Nov.',src:'owner',vis:'exec'}],
+   controls:[{c:'ITGC-BK-01',type:'modified',comp:'',ready:'not_started',ev:''},{c:'ITGC-CO-03',type:'modified',comp:'',ready:'ready',ev:'https://evidence.example/erp/batch'},{c:'ITGC-CM-01',type:'modified',comp:'',ready:'ready',ev:''}],
+   overlays:[{t:'commentary',text:'Cutover is 30 days out and the backup/restore control is not yet evidenced. Owner has a credible plan; we will confirm after the 12 Nov test.',vis:'exec'},{t:'highlight',text:'Restore test scheduled 12 Nov; rollback rehearsed. Tech Risk holding at Amber pending the result',vis:'exec'}],
+   updates:[{at:d('2026-11-03'),by:'E00104',text:'Test 70% complete, no severity-1 defects. Restore test booked for 12 Nov.',diff:{}}],
+   override:{value:'amber',derivedAtSet:'red',reason:'Derived Red is driven solely by the backup control status. The restore test is scheduled for 12 Nov with a rehearsed rollback; the other two controls are ready.',support:'Restore test plan CHG0048812 (approved 3 Nov); rollback rehearsal evidence https://evidence.example/erp/rollback; owner update 3 Nov confirming no Sev-1 defects.',review:d('2026-11-13'),by:'E00001',at:d('2026-11-04')},
+   history:[{at:d('2026-06-10'),by:'E00001',field:'status',from:'proposed',to:'active'},{at:d('2026-11-04'),by:'E00001',field:'RAG override',from:'—',to:'Amber (reason recorded)'}]},
+
+  {id:'dwh',name:'Finance Data Warehouse Rebuild',owner:'E00105',sponsor:'CFO',status:'active',phase:'Build',
+   desc:'Rebuild the finance reporting warehouse on the new analytics platform.',why:'Feeds management and statutory reports; completeness/accuracy controls over pipelines.',
+   baseline:d('2027-03-31'),goLive:d('2027-03-31'),accepted:d('2026-08-20'),
+   phases:[['Design','2026-08-15','2026-09-30','2026-08-15','2026-09-30',1],['Build','2026-10-01','2027-01-31','2026-10-01','2027-01-31',2],['Parallel run','2027-02-01','2027-03-15','2027-02-01','2027-03-15',3],['Go-live','2027-03-16','2027-03-31','2027-03-16','2027-03-31',4]],
+   milestones:[{n:'Pipeline framework ready',p:'2026-11-15',f:'2026-11-15',a:null,pct:60,st:'on_track',key:true},{n:'Parallel run start',p:'2027-02-01',f:'2027-02-01',a:null,pct:0,st:'planned',key:true}],
+   risks:[{t:'risk',title:'No owner yet for pipeline completeness control',r:'M',owner:'Lisa Taylor',tgt:'2026-12-15',st:'open',mit:'',src:'tech_risk',vis:'owner'}],
+   controls:[{c:'ITGC-CO-03',type:'new',comp:'',ready:'not_started',ev:''},{c:'ITGC-CM-01',type:'modified',comp:'',ready:'sent_back',ev:'https://evidence.example/dwh/cm',comment:'Link shows the policy only. Add a sample change with its approval.',sBy:'E00105',sAt:d('2026-09-22')}],
+   overlays:[{t:'highlight',text:'Owner engagement needed: no update since September; pipeline completeness control still has no owner',vis:'exec'},{t:'internal_note',text:'Lisa on leave until 10 Nov; chase then.',vis:'internal'}],
+   updates:[{at:d('2026-09-22'),by:'E00105',text:'Design complete. Build started on schedule.',diff:{}}],
+   override:null,history:[{at:d('2026-08-20'),by:'E00001',field:'status',from:'proposed',to:'active'}]},
+
+  {id:'lake',name:'Enterprise Data Lake',owner:'E00103',sponsor:'CDO',status:'proposed',phase:'Intake',
+   desc:'Central analytics platform for all business lines.',why:'New data pipelines will feed financial reports from 2027.',
+   baseline:null,goLive:d('2027-12-15'),accepted:null,submitted:d('2026-11-02'),
+   phases:[['Mobilize','2027-01-04','2027-02-26','2027-01-04','2027-02-26',1],['Build','2027-03-01','2027-09-30','2027-03-01','2027-09-30',2],['Onboard','2027-10-01','2027-12-15','2027-10-01','2027-12-15',4]],
+   milestones:[{n:'Platform live',p:'2027-09-30',f:'2027-09-30',a:null,pct:0,st:'planned',key:true}],
+   risks:[{t:'risk',title:'Scope creep across business lines',r:'M',owner:'Sarah Davis',tgt:'2027-02-01',st:'open',mit:'',src:'owner',vis:'exec'}],
+   controls:[{c:'ITGC-CO-03',type:'new',comp:'',ready:'not_started',ev:''}],overlays:[],updates:[],override:null,history:[{at:d('2026-11-02'),by:'E00103',field:'(intake submitted)',from:'',to:''}]},
+
+  {id:'legacy',name:'Legacy Payments Decommission',owner:'E00106',sponsor:'COO',status:'closed',phase:'Closed',
+   desc:'Decommission the legacy payments hub after migration to the new gateway.',why:'Retires 4 controls; evidence archive must be retained for audit.',
+   baseline:d('2026-09-30'),goLive:d('2026-09-30'),accepted:d('2026-03-01'),closed:d('2026-10-12'),closure:'All 4 retired controls confirmed with Internal Audit; evidence archived to records system (ref RM-2026-0412). No open findings.',
+   phases:[['Migrate','2026-03-01','2026-06-30','2026-03-01','2026-06-30',2],['Decommission','2026-07-01','2026-09-30','2026-07-01','2026-09-30',4]],
+   milestones:[{n:'Hub switched off',p:'2026-09-30',f:'2026-09-30',a:'2026-09-28',pct:100,st:'done',key:true}],
+   risks:[],controls:[{c:'SEC-VM-02',type:'retired',comp:'',ready:'ready',ev:'https://evidence.example/legacy/retire'}],
+   overlays:[{t:'commentary',text:'Closed cleanly. Retained in control mapping for audit trail.',vis:'exec'}],
+   updates:[{at:d('2026-10-01'),by:'E00106',text:'Hub switched off 28 Sep. Decommission evidence pack submitted.',diff:{}}],override:null,
+   history:[{at:d('2026-03-01'),by:'E00001',field:'status',from:'proposed',to:'active'},{at:d('2026-10-12'),by:'E00001',field:'status',from:'active',to:'closed'},{at:d('2026-10-12'),by:'E00001',field:'closure_control_outcome',from:'',to:'All 4 retired controls confirmed…'}]},
+];
+
+// ---------- severity ----------
+const SEV_Q=[['bcp','Tier 0 or 1 app affected'],['sox','SOX in-scope app affected'],['controls','New, retired or redesigned key controls'],['data','Financial or regulated data migrated'],['access','Change to how access is provisioned or reviewed'],['hosting','Moves to a vendor or cloud platform']];
+function sevDerive(a){const n=SEV_Q.filter(([k])=>a[k]).length; if(((a.bcp||a.sox)&&n>=2)||n>=3) return 'High'; return n>=1?'Medium':'Low';}
+const mkSev=keys=>{const answers={};SEV_Q.forEach(([k])=>{answers[k]=keys.includes(k);});return {answers,derived:sevDerive(answers),override:null};};
+const SEV_SEED={cbm:['bcp','sox','controls','access'],idp:['controls','hosting'],erp:['bcp','sox','data','hosting'],dwh:['data','controls'],lake:['data','hosting'],legacy:[]};
+INITS.forEach(i=>{i.sev=mkSev(SEV_SEED[i.id]||[]);i.delegates=i.delegates||[];});
+const sevEff=i=>i.sev.override?i.sev.override.value:i.sev.derived;
+const LVL={High:'Enhanced',Medium:'Standard',Low:'Light'};
+function sevPill(i,click){const v=sevEff(i),o=i.sev.override;return `<span class="pill sev${v}${click?' btn':''}" title="${o?`Override: ${esc(o.reason)}`:'Set by Tech Risk'}" ${click?`onclick="sevModal('${i.id}')"`:''}>${LVL[v]}${o?' (override)':''}</span>`;}
+
+// Past snapshots: frozen exec-visible state (simplified for the demo).
+let SNAPSHOTS = [
+  {id:'s2',label:'Oct 2026 leadership pack',at:d('2026-10-06'),by:'E00001',note:'Pre-read for 8 Oct leadership meeting',
+   rows:{cbm:{rag:'amber',phase:'Build',goLive:d('2026-12-15'),next:'Wave 1 connectors built · Oct 31, 2026',hl:['Build exit slipping on connector defects','Certification evidence format under discussion with Internal Audit']},idp:{rag:'green',phase:'Discovery',goLive:d('2027-05-31'),next:'Discovery complete · Oct 15, 2026',hl:['Discovery closing on time']},erp:{rag:'green',phase:'Migrate',goLive:d('2026-12-05'),next:'Migration rehearsal · Oct 5, 2026',hl:['Rehearsal complete']},dwh:{rag:'green',phase:'Build',goLive:d('2027-03-31'),next:'Pipeline framework ready · Nov 15, 2026',hl:[]},legacy:{rag:'green',phase:'Decommission',goLive:d('2026-09-30'),next:'Hub switched off · Sep 30, 2026',hl:['Switched off 28 Sep; closure pending']}},
+   summary:{green:4,amber:1,red:0,golive90:2,highOpen:1,stale:0}},
+  {id:'s1',label:'Sep 2026 leadership pack',at:d('2026-09-08'),by:'E00002',note:'',
+   rows:{cbm:{rag:'green',phase:'Build',goLive:d('2026-12-15'),next:'Wave 1 connectors built · Oct 31, 2026',hl:['On plan']},idp:{rag:'green',phase:'Discovery',goLive:d('2027-05-31'),next:'Discovery complete · Oct 15, 2026',hl:[]},erp:{rag:'amber',phase:'Migrate',goLive:d('2026-12-05'),next:'Migration rehearsal · Sep 30, 2026',hl:['Rehearsal re-planned to 5 Oct']},dwh:{rag:'green',phase:'Design',goLive:d('2027-03-31'),next:'Design complete · Sep 30, 2026',hl:[]},legacy:{rag:'green',phase:'Decommission',goLive:d('2026-09-30'),next:'Hub switched off · Sep 30, 2026',hl:[]}},
+   summary:{green:4,amber:1,red:0,golive90:1,highOpen:0,stale:0}},
+];
+
+
+// ---------- lifecycle stages & guidance ----------
+const STAGES=[
+ {n:'Intake',color:'#6e7781',approver:'Head of Tech Risk',gate:'Tech Risk accepted; baseline go-live fixed; initiative on the book of work.',controls:['Scoping: in-scope systems, reports and controls touched'],evidence:['Intake form (versioned)','Acceptance record','Baseline go-live'],ask:'How did you decide this was in scope for risk oversight, and when?',check:['Intake accepted by Tech Risk','Baseline go-live recorded','Affected systems/controls listed']},
+ {n:'Mobilize & Design',color:'#6e40c9',approver:'Sponsor (design sign-off) and Head of Tech Risk (control impact assessment)',method:'Completeness of the control impact assessment: start from the control library filtered to the systems named at intake, then confirm the list with each control owner. Record who was consulted.',gate:'Solution design signed off; control impact assessment complete; every affected control has an impact type.',controls:['Control design for new/modified controls','SoD model','Data migration approach (completeness & accuracy)','Interfaces','Reports used in controls (IPE)','Compensating / interim controls'],evidence:['Design sign-off','Control impact assessment','Risk assessment','SoD matrix','Migration strategy','Vendor SOC report review (if applicable)'],ask:'Show me you identified control impact before build, not after.',check:['Design signed off by sponsor','Control impact assessment complete — built from the control library for the affected systems and confirmed with control owners','SoD model agreed','Migration approach documented','Interim/compensating controls agreed, each with an end condition']},
+ {n:'Build & Configure',color:'#0969da',approver:'Program manager (build complete)',gate:'Build complete in non-prod; configuration baselined.',controls:['Change management on project environments','Developer access vs production','Configuration documentation','Security baseline'],evidence:['Build/config baseline','Access lists for project environments','Change log'],ask:'Who had access to what during build, and could they also move it to production?',check:['Configuration baselined','Project environment access list retained','Dev/prod access segregation confirmed']},
+ {n:'Test & Validate',color:'#1f883d',approver:'Business owner (UAT) and Change Advisory Board (test exit)',method:'Independence: the person who dry-runs a control must not have built or configured it. Record the tester’s name and role; Tech Risk observes at least one dry run for each new control.',gate:'Test exit approved; defects within tolerance; control test complete; migration rehearsal reconciled.',controls:['Test strategy and traceability','UAT sign-off','Control operating-effectiveness dry run','Migration reconciliation (counts, balances)','Performance / DR test'],evidence:['Test plans and results','Defect log with disposition','UAT sign-off','Migration reconciliation','Control walkthrough evidence'],ask:'Did you test the controls, not just the functionality? Did migration reconcile?',check:['UAT signed off by business owner','Each new/modified control dry-run tested by someone independent of build (tester named)','Tech Risk observed at least one control dry run','Migration rehearsal reconciled (counts and balances)','Defects within tolerance; disposition recorded']},
+ {n:'Cutover & Go-live',color:'#9a6700',approver:'Go/no-go chair (named) and Change Advisory Board',gate:'Go/no-go approved; production change approved; access provisioned per design; rollback ready.',controls:['Go/no-go checklist','Production change record','Access provisioning approvals','Final data reconciliation','Backup before cutover','Rollback plan'],evidence:['Go/no-go minutes','Change ticket(s)','Access approvals','Final reconciliation','Backup confirmation','Rollback plan'],ask:'Show me the approval to go live and evidence the migrated data was complete and accurate.',check:['Go/no-go approved','Production change approved','Access provisioned per design','Final reconciliation complete','Backup taken; rollback plan ready']},
+ {n:'Hypercare & Stabilize',color:'#bf3989',approver:'Head of Tech Risk (control readiness) and business owner (hypercare exit)',method:'Independence: first-operation evidence is reviewed by Tech Risk, not self-certified by the program. Interim controls must show operation evidence for the whole window before they are retired.',gate:'First operation of each new/modified control evidenced; hypercare incidents closed; interim controls retired or extended.',controls:['First-run evidence for every new/modified control','Monitoring','Elevated access removed','Interim control exit'],evidence:['First control operation evidence','Hypercare incident log','Access de-provisioning evidence','Interim-control closure'],ask:'Prove the new controls actually operated once. Was project access removed?',check:['Every new/modified control operated at least once; evidence reviewed by Tech Risk','Interim controls evidenced as operated for the whole window','Interim controls retired, or extension approved with new end date','Project / elevated access removed (de-provisioning evidence)','Hypercare incidents closed']},
+ {n:'Close',color:'#24292f',approver:'Head of Tech Risk',gate:'Control readiness outcome recorded; retired controls confirmed; evidence archived; handover to BAU owners.',controls:['Decommissioning (retention, access removal)','Control library updated','BAU ownership confirmed'],evidence:['Closure record (versioned)','Evidence archive reference','Updated control mapping','Decommission confirmation'],ask:'Where is everything, and who owns these controls now?',check:['Control readiness outcome recorded','Retired controls confirmed','Evidence archive reference recorded','BAU control owners confirmed']},
+];
+const GUIDANCE_VERSION='v1.2';
+const BASIS={reviewed:'Evidence reviewed',observed:'Independently tested',attested:'Owner attestation'};
+// gate approvals: GATES[init][stage] = {approver, at, ev, by, recordedAt}
+const GATES={cbm:{0:{approver:'Head of Tech Risk',at:d('2026-07-14'),ev:'Intake acceptance record',by:'E00001',recordedAt:d('2026-07-14')},1:{approver:'CISO',at:d('2026-08-20'),ev:'https://evidence.example/sailpoint/design-signoff',by:'E00001',recordedAt:d('2026-08-22')}},
+ erp:{0:{approver:'Head of Tech Risk',at:d('2026-06-10'),ev:'Intake acceptance record',by:'E00001',recordedAt:d('2026-06-10')},1:{approver:'CFO',at:d('2026-07-15'),ev:'https://evidence.example/erp/design',by:'E00001',recordedAt:d('2026-07-16')},2:{approver:'Program manager',at:d('2026-10-05'),ev:'https://evidence.example/erp/build-complete',by:'E00001',recordedAt:d('2026-10-05')}},
+ idp:{0:{approver:'Head of Tech Risk',at:d('2026-09-02'),ev:'Intake acceptance record',by:'E00001',recordedAt:d('2026-09-02')}},dwh:{0:{approver:'Head of Tech Risk',at:d('2026-08-20'),ev:'Intake acceptance record',by:'E00001',recordedAt:d('2026-08-20')}},
+ legacy:{0:{approver:'Head of Tech Risk',at:d('2026-03-01'),ev:'Intake acceptance record',by:'E00001',recordedAt:d('2026-03-01')},6:{approver:'Head of Tech Risk',at:d('2026-10-12'),ev:'Closure record RM-2026-0412',by:'E00001',recordedAt:d('2026-10-12')}},lake:{}};
+const stageOf=i=>{const ph=i.phases.find(ph=>ph[0]===i.phase); return ph&&ph[5]!==undefined?ph[5]:i.status==='proposed'?0:i.status==='closed'?6:2;};
+// checklist state: CHECKS[init][stage][item] = {by, at}
+const CHECKS={cbm:{0:{0:{by:'E00001',at:d('2026-07-14'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},1:{by:'E00001',at:d('2026-07-14'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},2:{by:'E00001',at:d('2026-07-14'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'}},1:{0:{by:'E00001',at:d('2026-08-22'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},2:{by:'E00001',at:d('2026-09-05'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},4:{by:'E00001',at:d('2026-10-15'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'}},2:{0:{by:'E00001',at:d('2026-10-20'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'}}},
+ idp:{0:{0:{by:'E00001',at:d('2026-09-02'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},1:{by:'E00001',at:d('2026-09-02'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},2:{by:'E00001',at:d('2026-09-02'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'}}},
+ erp:{0:{0:{by:'E00001',at:d('2026-06-10'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},1:{by:'E00001',at:d('2026-06-10'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},2:{by:'E00001',at:d('2026-06-10'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'}},1:{0:{by:'E00001',at:d('2026-07-16'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},1:{by:'E00001',at:d('2026-07-16'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},2:{by:'E00001',at:d('2026-07-16'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},3:{by:'E00001',at:d('2026-07-16'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},4:{by:'E00001',at:d('2026-07-16'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'}},2:{0:{by:'E00001',at:d('2026-10-05'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},1:{by:'E00001',at:d('2026-10-05'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},2:{by:'E00001',at:d('2026-10-05'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'}},3:{2:{by:'E00001',at:d('2026-10-06'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'}}},
+ dwh:{0:{0:{by:'E00001',at:d('2026-08-20'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},1:{by:'E00001',at:d('2026-08-20'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},2:{by:'E00001',at:d('2026-08-20'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'}},1:{0:{by:'E00001',at:d('2026-09-30'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'}}},
+ legacy:{0:{0:{by:'E00001',at:d('2026-03-01'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},1:{by:'E00001',at:d('2026-03-01'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},2:{by:'E00001',at:d('2026-03-01'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'}},6:{0:{by:'E00001',at:d('2026-10-12'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},1:{by:'E00001',at:d('2026-10-12'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},2:{by:'E00001',at:d('2026-10-12'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'},3:{by:'E00001',at:d('2026-10-12'),basis:'reviewed',ev:'Reviewed in program SharePoint (ref on file)',gv:'v1.1'}}},lake:{}};
+// ---------- gates and evidence flow ----------
+const SEVS=['High','Medium','Low'];
+const GATE_MATRIX={High:['','F','F','F','F','F','F'],Medium:['','F','C','C','F','C','F'],Low:['','C','A','A','F','A','F']};
+const REQ_LABEL={F:'Approver sign-off',C:'Tech Risk review',A:'Owner confirms'};
+const REQ_TIP={F:'Tech Risk reviews the evidence, then the named approver signs off',C:'Tech Risk reviews the evidence',A:'The owner confirms each item is done',I:'Tech Risk accepts the intake'};
+const DECISION={proceed:['green','Proceed'],conditions:['amber','With conditions'],hold:['red','Hold']};
+Object.values(CHECKS).forEach(a=>Object.values(a).forEach(b=>Object.values(b).forEach(c=>{c.status=c.status||'accepted';})));
+Object.values(GATES).forEach(o=>Object.values(o).forEach(g=>{g.decision=g.decision||'proceed';}));
+CHECKS.cbm[2][1]={status:'submitted',sBy:'E00101',sAt:d('2026-11-03'),ev:'https://evidence.example/sailpoint/access-list'};
+CHECKS.cbm[2][2]={status:'sent_back',sBy:'E00101',sAt:d('2026-11-01'),ev:'https://evidence.example/sailpoint/segregation',comment:'Evidence does not show developer access to production.',backBy:'E00001',backAt:d('2026-11-02')};
+const reqFor=(i,k)=>k===0?'I':((GATE_MATRIX[sevEff(i)]||[])[k]||'F');
+const reqTag=(i,k)=>{const r=reqFor(i,k);return `<span class="tag" title="${REQ_TIP[r]}">${r==='I'?'Intake acceptance':REQ_LABEL[r]}</span>`;};
+const decPill=g=>g&&DECISION[g.decision]?`<span class="pill ${DECISION[g.decision][0]}">${DECISION[g.decision][1]}</span>`:'';
+const evLink=e=>/^https?:/.test(e||'')?`<a href="${esc(e)}">evidence</a>`:esc(e||'');
+const itemStatus=(id,st,j)=>{const c=((CHECKS[id]||{})[st]||{})[j];return c?(c.status||'accepted'):'open';};
+const itemDone=s=>s==='accepted'||s==='na';
+const ckSet=(id,st)=>{CHECKS[id]=CHECKS[id]||{};CHECKS[id][st]=CHECKS[id][st]||{};return CHECKS[id][st];};
+const itemLabel=(st,k)=>`${STAGES[st].n} checklist · ${STAGES[st].check[k]}`;
+const hist=(i,field,from,to)=>i.history.push({at:TODAY,by:role.emp,field,from,to});
+function openModal(title,body){document.getElementById('modal').innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal"><button class="close sm" onclick="closeModal()">Cancel</button><h2>${title}</h2>${body}</div></div>`;}
+function stageInfo(i,k){const total=STAGES[k].check.length;let done=0,sub=0;for(let j=0;j<total;j++){const s=itemStatus(i.id,k,j);if(itemDone(s))done++;else if(s==='submitted')sub++;}
+  const g=(GATES[i.id]||{})[k];const req=reqFor(i,k);const gate=req==='F'||req==='I';const itemsOk=done===total;const gateOk=!gate||!!(g&&g.decision!=='hold');
+  return {done,total,sub,g,gate,req,itemsOk,gateOk,complete:itemsOk&&gateOk};}
+const itemTitle=(st,k)=>`<p style="margin:0 0 6px"><b>${STAGES[st].n}</b> — ${STAGES[st].check[k]}</p>`;
+// Tech Risk confirms directly (intake) or accepts with a chosen basis
+function openConfirm(id,st,k,accept){const prev=((CHECKS[id]||{})[st]||{})[k]||{};
+  openModal(accept?'Accept checklist item':'Confirm checklist item',`${itemTitle(st,k)}<p class="small muted" style="margin:0 0 6px">Recorded as you, today. Visible to auditors.</p>
+    <form class="f" onsubmit="confirmCheck(event,'${id}',${st},${k})"><label>Basis</label><input type="hidden" name="b" id="basisIn" value="reviewed"><div class="seg">${Object.entries(BASIS).map(([v,l])=>`<button type="button" class="${v==='reviewed'?'on':''}" onclick="setBasis(this,'${v}')">${l}</button>`).join('')}</div>
+    <label>Evidence reference</label><input name="e" required value="${esc(prev.ev||'')}" placeholder="Link, document ID or ticket">
+    <label>Note (optional)</label><input name="n" value="${esc(prev.note||'')}">
+    <div style="margin-top:10px"><button class="primary">${accept?'Accept':'Confirm'}</button></div></form>`);}
+function setBasis(btn,v){document.getElementById('basisIn').value=v;Array.from(btn.parentNode.children).forEach(x=>x.classList.toggle('on',x===btn));}
+function confirmCheck(ev,id,st,k){ev.preventDefault();const f=new FormData(ev.target);const e=(f.get('e')||'').trim();if(!e){toast('Add an evidence reference');return;}
+  const i=INITS.find(x=>x.id===id);touch(id);const s=ckSet(id,st);const prev=s[k]||{};const b=BASIS[f.get('b')]?f.get('b'):'reviewed';
+  s[k]={...prev,status:'accepted',by:role.emp,at:TODAY,basis:b,ev:e,note:(f.get('n')||'').trim(),gv:GUIDANCE_VERSION};delete s[k].comment;
+  hist(i,itemLabel(st,k),prev.status==='submitted'?'submitted':'open',`accepted (${BASIS[b]}; ${e})`);closeModal();toast('Item accepted');render();}
+function acceptItem(id,st,k){const i=INITS.find(x=>x.id===id);const s=ckSet(id,st);const prev=s[k];if(!prev||prev.status!=='submitted')return;touch(id);
+  s[k]={...prev,status:'accepted',by:role.emp,at:TODAY,basis:'reviewed',gv:GUIDANCE_VERSION};delete s[k].comment;
+  hist(i,itemLabel(st,k),'submitted',`accepted (${BASIS.reviewed}; ${prev.ev})`);toast('Item accepted');render();}
+function sendBackItem(id,st,k){openModal('Send back',`${itemTitle(st,k)}<form class="f" onsubmit="saveSendBack(event,'${id}',${st},${k})"><label>Comment (required)</label><textarea name="c" rows="2" required></textarea><div style="margin-top:10px"><button class="primary">Send back</button></div></form>`);}
+function saveSendBack(ev,id,st,k){ev.preventDefault();const c=(new FormData(ev.target).get('c')||'').trim();if(!c){toast('Add a comment');return;}
+  const i=INITS.find(x=>x.id===id);touch(id);const s=ckSet(id,st);s[k]={...s[k],status:'sent_back',comment:c,backBy:role.emp,backAt:TODAY};
+  hist(i,itemLabel(st,k),'submitted',`sent back (${c})`);closeModal();toast('Sent back to owner');render();}
+function naModal(id,st,k){openModal('Mark as N/A',`${itemTitle(st,k)}<form class="f" onsubmit="saveNA(event,'${id}',${st},${k})"><label>Reason (required)</label><input name="r" required placeholder="For example: no data migration"><div style="margin-top:10px"><button class="primary">Mark N/A</button></div></form>`);}
+function saveNA(ev,id,st,k){ev.preventDefault();const r=(new FormData(ev.target).get('r')||'').trim();if(!r){toast('Add a reason');return;}
+  const i=INITS.find(x=>x.id===id);touch(id);const s=ckSet(id,st);const prev=s[k]||{};s[k]={status:'na',reason:r,by:role.emp,at:TODAY};
+  hist(i,itemLabel(st,k),prev.status==='submitted'?'submitted':'open',`N/A (${r})`);closeModal();toast('Marked N/A');render();}
+function resetItem(id,st,k){const i=INITS.find(x=>x.id===id);const s=ckSet(id,st);const prev=s[k];if(!prev)return;touch(id);delete s[k];hist(i,itemLabel(st,k),prev.status==='na'?'N/A':'accepted','open');render();}
+function evidenceModal(id,st,k){openModal('Submit evidence',`${itemTitle(st,k)}<form class="f" onsubmit="saveEvidence(event,'${id}',${st},${k})"><label>Evidence link (required)</label><input name="e" required placeholder="Link or ticket"><label>Note (optional)</label><input name="n"><div style="margin-top:10px"><button class="primary">Submit</button></div></form>`);}
+function saveEvidence(ev,id,st,k){ev.preventDefault();const f=new FormData(ev.target);const e=(f.get('e')||'').trim();if(!e){toast('Add an evidence link');return;}
+  const i=INITS.find(x=>x.id===id);touch(id);const s=ckSet(id,st);const prev=s[k]||{};s[k]={status:'submitted',sBy:role.emp,sAt:TODAY,ev:e,note:(f.get('n')||'').trim()};
+  hist(i,itemLabel(st,k),prev.status==='sent_back'?'sent back':'open',`submitted (${e})`);closeModal();toast('Evidence submitted');render();}
+function attestItem(id,st,k){const i=INITS.find(x=>x.id===id);touch(id);const s=ckSet(id,st);const prev=s[k]||{};
+  s[k]={status:'accepted',by:role.emp,at:TODAY,basis:'attested',ev:'Owner attestation',gv:GUIDANCE_VERSION};hist(i,itemLabel(st,k),prev.status==='sent_back'?'sent back':'open',`confirmed (${BASIS.attested})`);toast('Item confirmed');render();}
+function recordGate(id,st){openModal(`Gate review — ${STAGES[st].n}`,`<p class="small muted">Expected approver: ${STAGES[st].approver}</p>
+  <form class="f" onsubmit="saveGate(event,'${id}',${st})"><label>Approver name</label><input name="a" required><label>Date</label><input type="date" name="d" value="${ymd(TODAY)}" required>
+  <label>Approval evidence link</label><input name="e" required><label>Decision</label><select name="dc" onchange="document.getElementById('condBox').style.display=this.value==='conditions'?'block':'none'"><option value="proceed">Proceed</option><option value="conditions">Proceed with conditions</option><option value="hold">Hold</option></select>
+  <div id="condBox" style="display:none"><label>Conditions (required)</label><textarea name="cn" rows="2"></textarea></div><button class="primary" style="margin-top:8px">Record</button></form>`);}
+function saveGate(ev,id,st){ev.preventDefault();const f=new FormData(ev.target);const i=INITS.find(x=>x.id===id);
+  const a=(f.get('a')||'').trim(),e=(f.get('e')||'').trim(),dt=f.get('d'),dc=f.get('dc'),cn=(f.get('cn')||'').trim();
+  if(!a||!e||!dt){toast('Approver, date and evidence link are required');return;}
+  if(!DECISION[dc]){toast('Pick a decision');return;}
+  if(dc==='conditions'&&!cn){toast('Add the conditions');return;}
+  touch(id);const prev=(GATES[id]||{})[st];GATES[id]=GATES[id]||{};GATES[id][st]={approver:a,at:d(dt),ev:e,by:role.emp,recordedAt:TODAY,decision:dc,conditions:dc==='conditions'?cn:''};
+  hist(i,`${STAGES[st].n} gate review`,prev?DECISION[prev.decision][1]:'—',`${DECISION[dc][1]} · ${a}, ${fmt(d(dt))}${cn?` (${cn})`:''}`);closeModal();toast('Gate review recorded');render();}
+// severity modal (Tech Risk)
+function sevModal(id){if(role.id!=='tech_risk')return;const i=INITS.find(x=>x.id===id);const s=i.sev;
+  openModal(`Oversight level — ${esc(i.name)}`,`<form class="f" onsubmit="saveSev(event,'${id}')">${SEV_Q.map(([k,l])=>`<label class="chk"><input type="checkbox" name="q_${k}" ${s.answers[k]?'checked':''} onchange="sevLive(this.form)"> ${l}</label>`).join('')}
+    <div style="margin:8px 0">From answers: <b id="sevDer">${LVL[sevDerive(s.answers)]}</b></div>
+    <label>Override</label><select name="ov"><option value="">None</option>${SEVS.map(v=>`<option value="${v}" ${s.override&&s.override.value===v?'selected':''}>${LVL[v]}</option>`).join('')}</select>
+    <label>Reason (required with an override)</label><textarea name="r" rows="2">${s.override?esc(s.override.reason):''}</textarea>
+    <div class="row" style="margin-top:10px"><button class="primary">Save</button>${s.override?`<button type="button" onclick="clearSev('${id}')">Clear override</button>`:''}</div></form>`);}
+function sevLive(form){const a={};SEV_Q.forEach(([k])=>{a[k]=!!form.elements['q_'+k].checked;});document.getElementById('sevDer').textContent=LVL[sevDerive(a)];}
+function saveSev(ev,id){ev.preventDefault();const f=new FormData(ev.target);const i=INITS.find(x=>x.id===id);const s=i.sev;
+  const ans={};SEV_Q.forEach(([k])=>{ans[k]=!!f.get('q_'+k);});const ov=f.get('ov')||'',r=(f.get('r')||'').trim();
+  if(ov&&!SEVS.includes(ov))return; if(ov&&!r){toast('Add a reason for the override');return;}
+  const before=sevEff(i);
+  SEV_Q.forEach(([k,l])=>{if(ans[k]!==s.answers[k])hist(i,`Oversight answer · ${l}`,s.answers[k]?'Yes':'No',ans[k]?'Yes':'No');});
+  s.answers=ans;s.derived=sevDerive(ans);
+  if(ov){if(!s.override||s.override.value!==ov||s.override.reason!==r)hist(i,'Oversight override',s.override?LVL[s.override.value]:'—',`${LVL[ov]} (${r})`);s.override={value:ov,reason:r,by:role.emp,at:TODAY};}
+  else if(s.override){hist(i,'Oversight override',LVL[s.override.value],'cleared');s.override=null;}
+  const after=sevEff(i);if(after!==before)hist(i,'Oversight level',LVL[before],LVL[after]);
+  touch(id);closeModal();toast('Oversight level saved');render();}
+function clearSev(id){const i=INITS.find(x=>x.id===id);if(!i.sev.override)return;const before=sevEff(i);hist(i,'Oversight override',LVL[i.sev.override.value],'cleared');i.sev.override=null;if(sevEff(i)!==before)hist(i,'Oversight level',LVL[before],LVL[sevEff(i)]);touch(id);closeModal();toast('Override cleared');render();}
+
+// ---------- RAG engine (mirrors spec §5) ----------
+function staleDays(i){ if(!i.updates.length) return i.accepted?daysBetween(i.accepted,TODAY):null; return daysBetween(i.updates[0].at,TODAY); }
+function derive(i){
+  const fired=[]; let worst='green';
+  if(i.status==='closed'||i.status==='archived') return {derived:'green',fired:[],stale:null,toGo:null};
+  const bump=(lvl,rule,chip)=>{fired.push([lvl,rule,chip]); if(lvl==='red'||(lvl==='amber'&&worst==='green')) worst=lvl;};
+  const toGo = i.goLive?daysBetween(TODAY,i.goLive):null;
+  const stale = staleDays(i);
+  for(const m of i.milestones){ if(!m.key||m.st==='done') continue; const cmp=m.a||m.f; if(!cmp) continue; const slip=daysBetween(d(m.p),d(cmp));
+    if(slip>THRESH.red_slip) bump('red',`${m.n}`,`Milestone slipped ${slip}d`);
+    else if(slip>THRESH.amber_slip) bump('amber',`${m.n}`,`Milestone slipped ${slip}d`); }
+  if(i.baseline&&i.goLive){ const s=daysBetween(i.baseline,i.goLive); if(s>THRESH.red_golive_slip) bump('red',`Versus baseline ${fmt(i.baseline)}`,`Go-live slipped ${s}d`); }
+  for(const r of i.risks){ if(r.r==='H'&&r.st!=='closed'){ if(r.tgt&&d(r.tgt)<TODAY) bump('red',r.title,'High risk past due'); else bump('amber',r.title,'High risk open');} }
+  if(toGo!==null&&toGo>=0){
+    if(toGo<=THRESH.red_golive_window&&i.controls.some(c=>c.ready==='not_started')) bump('red',i.controls.filter(c=>c.ready==='not_started').map(c=>c.c).join(', '),`Control not ready, go-live in ${toGo}d`);
+    if(toGo<=THRESH.amber_golive_window&&i.controls.some(c=>['in_progress','submitted','sent_back'].includes(c.ready))) bump('amber',i.controls.filter(c=>['in_progress','submitted','sent_back'].includes(c.ready)).map(c=>c.c).join(', '),`Control in progress, go-live in ${toGo}d`); }
+  if(stale!==null){ if(stale>THRESH.red_stale) bump('red',`Last update ${i.updates[0]?fmt(i.updates[0].at):'never'}`,`Stale ${stale}d`); else if(stale>THRESH.amber_stale) bump('amber',`Last update ${i.updates[0]?fmt(i.updates[0].at):'never'}`,`Stale ${stale}d`); }
+  return {derived:worst,fired,stale,toGo};
+}
+const ORD={green:0,amber:1,red:2};
+function evaluate(i){
+  const e=derive(i);
+  // Auto-expire when the derived RAG gets worse than it was when the override was set (new deterioration).
+  if(i.override&&ORD[e.derived]>ORD[i.override.derivedAtSet]){ i.history.push({at:TODAY,by:'SYSTEM',field:'RAG override',from:i.override.value,to:`auto-expired (derived worsened ${i.override.derivedAtSet} → ${e.derived})`}); i.override={...i.override,clearedAt:TODAY}; }
+  if(i.override&&i.override.clearedAt) i.override=null;
+  e.effective=i.override?i.override.value:e.derived; e.override=i.override;
+  const top=e.fired.filter(f=>f[0]===e.derived)[0]; e.rule=top?top[1]:'No rule fired'; e.chip=top?top[2]:'';
+  return e;
+}
+const nextMilestone=i=>i.milestones.filter(m=>m.st!=='done').sort((a,b)=>d(a.f||a.p)-d(b.f||b.p))[0];
+const lastSnap=()=>SNAPSHOTS.slice().sort((a,b)=>b.at-a.at)[0];
+function priorLine(i){ const s=lastSnap(); const cur=evaluate(i).effective; const Cap=x=>x[0].toUpperCase()+x.slice(1);
+  if(!s||!s.rows[i.id]) return `<div class="meta"><span class="muted">New since the last snapshot</span></div>`;
+  const prev=s.rows[i.id].rag, tip=`Compared with the last snapshot: ${s.label}`;
+  if(prev===cur) return `<div class="meta" title="${esc(tip)}"><span class="muted">— Unchanged (${Cap(cur)})</span></div>`;
+  const worse=ORD[cur]>ORD[prev];
+  return `<div class="meta" title="${esc(tip)}" style="color:var(--${worse?'red':'green'});font-weight:600;cursor:help">${worse?'▲ Increased':'▼ Decreased'} to ${Cap(cur)} from ${Cap(prev)}</div>`; }
+function trend(i){ const s=lastSnap(); if(!s||!s.rows[i.id]) return ''; const prev=ORD[s.rows[i.id].rag], cur=ORD[evaluate(i).effective]; if(cur>prev) return `<span class="trend up">▲ worse than ${s.label.split(' ')[0]} snapshot</span>`; if(cur<prev) return `<span class="trend down">▼ better than ${s.label.split(' ')[0]} snapshot</span>`; return `<span class="trend muted">— unchanged vs ${s.label.split(' ')[0]} snapshot</span>`; }
+
+// ---------- role / visibility ----------
+let role=ROLES[0]; let view='exec'; let selected='cbm'; let snapshotId='live'; let asOf=null; let curationTab='vis';
+const canSee = (vis,i) => { if(role.id==='tech_risk') return true; if(vis==='exec') return true; if(vis==='owner') return role.id==='owner'&&i.owner===role.emp; return false; };
+const visibleInits = () => INITS.filter(i=> role.id==='tech_risk' ? true : role.id==='owner' ? i.owner===role.emp : i.status!=='proposed');
+const seesOverride = () => role.id==='tech_risk'||role.id==='auditor';
+const pill=(rag,txt)=>`<span class="pill ${rag}">${txt||rag[0].toUpperCase()+rag.slice(1)}</span>`;
+const visTag=v=>`<span class="tag ${v}">${v==='exec'?'exec/audit':v}</span>`;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+
+// ---------- navigation ----------
+const NAV = () => {
+  const n=[];
+  if(role.id!=='owner') n.push(['exec','Exec summary']);
+  if(role.id==='owner') n.push(['owner','My initiative']);
+  if(role.id==='tech_risk') n.push(['workbench','Workbench']);
+  if(role.id==='tech_risk'||role.id==='owner') n.push(['intake','Intake form']);
+  if(role.id==='auditor'||role.id==='tech_risk') n.push(['audit','Audit']);
+  n.push(['lifecycle','Lifecycle & guidance']);
+  return n;
+};
+function go(v,arg,tab){ if(v==='initiative'||v==='owner') initTab='overview'; if(tab) initTab=tab; view=v; if(arg) selected=arg; if(v==='initiative'&&role.id==='owner'){view='owner';} render(); window.scrollTo(0,0); }
+function setRole(id){ role=ROLES.find(r=>r.id===id); snapshotId='live'; asOf=null; const allowed=NAV().map(n=>n[0]).concat(['initiative']); if(!allowed.includes(view)) view=NAV()[0][0]; if(view==='initiative'&&role.id==='owner') view='owner'; render(); }
+
+// ---------- renderers ----------
+function render(){
+  document.getElementById('nav').innerHTML=NAV().map(([v,l])=>`<a href="#${v}" class="${view===v||(v==='exec'&&view==='initiative')?'on':''}" onclick="go('${v}');return false">${l}</a>`).join('');
+  const rs=document.getElementById('roleSel'); if(!rs.options.length){ ROLES.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=r.label;rs.appendChild(o);}); rs.onchange=e=>setRole(e.target.value);} rs.value=role.id;
+  const b=document.getElementById('banner');
+  if(snapshotId!=='live'){const s=SNAPSHOTS.find(x=>x.id===snapshotId); b.className='banner snap'; b.innerHTML=`Snapshot: <b>${esc(s.label)}</b> · ${fmt(s.at)} · <a href="#" onclick="snapshotId='live';render();return false">Back to live</a>`;}
+  else if(asOf){ b.className='banner snap'; b.innerHTML=`As of <b>${fmt(asOf)}</b> · <a href="#" onclick="asOf=null;render();return false">Back to live</a>`;}
+  else { b.className=''; b.innerHTML=''; }
+  const app=document.getElementById('app');
+  app.innerHTML = ({lifecycle:rLifecycle,exec:rExec,initiative:()=>rInitiative(INITS.find(i=>i.id===selected)),workbench:rWorkbench,owner:()=>rInitiative(INITS.find(i=>i.owner===role.emp)||INITS[0],true),intake:rIntake,audit:rAudit})[view]();
+}
+
+function rExec(){
+  const snap=snapshotId!=='live'?SNAPSHOTS.find(x=>x.id===snapshotId):null;
+  const inits=visibleInits().filter(i=>i.status!=='archived');
+  const active=inits.filter(i=>i.status==='active');
+  const ev=Object.fromEntries(active.map(i=>[i.id,evaluate(i)]));
+  const ragOfLive=i=>snap?(snap.rows[i.id]||{}).rag:ev[i.id].effective;
+  const counts={green:0,amber:0,red:0}; active.forEach(i=>{const r=ragOfLive(i); if(r) counts[r]++;});
+  const nm=i=>`<a href="#" onclick="go('initiative','${i.id}');return false">${esc(i.name)}</a>`;
+  // vs prior view
+  const ref = snap ? SNAPSHOTS.filter(x=>x.at<snap.at).sort((a,b)=>b.at-a.at)[0] : lastSnap();
+  const refName = ref ? ref.label.split(' ').slice(0,2).join(' ') : null;
+  let worse=[],better=[];
+  const C=x=>x[0].toUpperCase()+x.slice(1);
+  const mvPill=(i,prev,cur)=>`<a href="#" class="mv" title="${C(prev)} → ${C(cur)} since ${ref.label.split(' ')[0]}" onclick="go('initiative','${i.id}');return false">${ORD[cur]>ORD[prev]?'▲':'▼'} ${esc(i.name)}</a>`;
+  const movers={red:[],amber:[],green:[]};
+  if(ref) active.forEach(i=>{const prev=ref.rows[i.id]; const cur=ragOfLive(i); if(!prev||!cur) return; if(ORD[cur]!==ORD[prev.rag]){ movers[cur].push(mvPill(i,prev.rag,cur)); (ORD[cur]>ORD[prev.rag]?worse:better).push(i.id); }});
+  const mon=ref?ref.label.split(' ')[0]:'';
+  const prevCounts={green:0,amber:0,red:0}; const atRef=snap?snap.at:TODAY;
+  if(ref) active.forEach(i=>{const p=ref.rows[i.id]; if(p) prevCounts[p.rag]++; else prevCounts[ragOfLive(i)]++;});
+  const closedN=ref?inits.filter(i=>i.status==='closed'&&i.closed&&i.closed>ref.at&&i.closed<=atRef).length:0;
+
+  // next 90 days
+  const soon=active.filter(i=>{const g=snap?snap.rows[i.id]?.goLive:i.goLive; const at=snap?snap.at:TODAY; return g&&daysBetween(at,g)>=0&&daysBetween(at,g)<=90;}).sort((a,b)=>(snap?snap.rows[a.id].goLive:a.goLive)-(snap?snap.rows[b.id].goLive:b.goLive));
+  const ctlColor=c=>c.ready==='ready'?'green':(c.ready==='not_started'||c.ready==='sent_back'||c.ready==='not_ready')?'red':'amber';
+  const soonRows=soon.map(i=>{const g=snap?snap.rows[i.id].goLive:i.goLive; const at=snap?snap.at:TODAY; const dd=daysBetween(at,g);
+    const ctl=snap?null:i.controls; const ready=ctl?ctl.filter(c=>c.ready==='ready').length:0;
+    const bar=ctl&&ctl.length?`<div class="gl-ctl" title="${ready} of ${ctl.length} controls ready">${ctl.map(c=>`<span class="sq ${ctlColor(c)}" title="${c.c}"></span>`).join('')}<span class="gl-ctl-txt">${ready===ctl.length?'Controls ready':`${ready} of ${ctl.length} controls ready`}</span></div>`:'';
+    return `<div class="gl-row"><div class="gl-days"><b>${dd}</b><span>days</span></div><div class="gl-main"><div>${nm(i)} <span class="muted small">· ${fmt(g)}</span></div>${bar}</div></div>`;}).join('');
+  // flags
+  const strip=`<div class="strip" style="grid-template-columns:1.3fr 1fr">
+    <div class="card"><div class="lbl" title="Active initiatives">Pulse check</div><div class="stats">${['red','amber','green'].map(r=>{const dv=ref?counts[r]-prevCounts[r]:null; return `<div class="stat ${r}" title="${C(r)}"><div class="stat-top"><b>${counts[r]}</b><span>${dv===null?'':dv>0?`▲ ${dv} since ${mon}`:dv<0?`▼ ${-dv} since ${mon}`:`No change`}</span></div>${movers[r].length?`<div class="stat-mv">${movers[r].join('')}</div>`:''}</div>`;}).join('')}${ref?`<div class="stat closed" title="Closed since ${mon}"><div class="stat-top"><b>${closedN}</b><span>closed since ${mon}</span></div></div>`:''}</div></div>
+    <div class="card"><div class="lbl" title="Go-lives in the next 90 days">Next 90 days</div>${soon.length?`<div class="gl-list">${soonRows}</div>`:'<div class="muted small" style="margin-top:4px">No go-lives in the next 90 days</div>'}</div>
+  </div>`;
+  // Tiles only for what needs attention (Amber/Red). Green is a compact list; closed-since-prior-view is its own list.
+  const tile=i=>{
+    if(snap){ const r=snap.rows[i.id]; return `<div class="tile ${r.rag}" onclick="go('initiative','${i.id}')"><h3>${esc(i.name)}</h3><div class="meta">${name(i.owner)}</div><ul>${r.hl.map(h=>`<li>${esc(h)}</li>`).join('')}</ul></div>`; }
+    const e=evaluate(i); const nm=nextMilestone(i);
+    const hl=i.overlays.filter(o=>o.t==='highlight'&&canSee(o.vis,i)).slice(0,3);
+    const stale=e.stale!==null&&e.stale>THRESH.amber_stale?`<span class="pill stale">Stale · ${e.stale}d</span>`:'';
+    const ov=e.override&&seesOverride()?`<span class="pill override" title="Click for the override reasoning and support" style="cursor:pointer" onclick="event.stopPropagation();showOverride('${i.id}')">Overridden: ${e.derived[0].toUpperCase()+e.derived.slice(1)} → ${e.effective[0].toUpperCase()+e.effective.slice(1)} ›</span>`:'';
+    return `<div class="tile ${e.effective}" onclick="go('initiative','${i.id}')"><h3>${esc(i.name)} ${ov} ${stale}</h3>${priorLine(i)}
+      <div class="meta">${name(i.owner)} · last update ${i.updates[0]?`${fmt(i.updates[0].at)} (${daysBetween(i.updates[0].at,TODAY)}d ago)`:'never'}</div>
+      ${hl.length?`<ul>${hl.map(h=>`<li>${esc(h.text)}</li>`).join('')}</ul>`:`<div class="meta muted" style="margin-top:6px">${esc(e.rule)}</div>`}</div>`; };
+  const ragOf=ragOfLive;
+  const flagged=active.filter(i=>ragOf(i)&&ragOf(i)!=='green').sort((a,b)=>ORD[ragOf(b)]-ORD[ragOf(a)]);
+  const refDate = snap ? (SNAPSHOTS.filter(x=>x.at<snap.at).sort((a,b)=>b.at-a.at)[0]||{at:new Date(0)}).at : (lastSnap()||{at:new Date(0)}).at;
+  const refLabel = snap ? 'prior snapshot' : (lastSnap()?`the ${lastSnap().label.split(' ')[0]} snapshot`:'start');
+  const closedSince=inits.filter(i=>i.status==='closed'&&i.closed&&i.closed>refDate&&(!snap||i.closed<=snap.at));
+  const proposed=inits.filter(i=>i.status==='proposed');
+  const closedList=closedSince.length?`<h2 class="sect">Closed since ${refLabel}</h2><table>${closedSince.map(i=>`<tr><td><a href="#" onclick="go('initiative','${i.id}');return false">${esc(i.name)}</a></td><td>${name(i.owner)}</td><td class="small">closed ${fmt(i.closed)}</td><td class="small">${esc(i.closure.split('.')[0])}.</td></tr>`).join('')}</table>`:'';
+  const intakeLine=proposed.length&&role.id!=='senior_management'?`<p class="small muted" style="margin:10px 0 0">${proposed.length} initiative${proposed.length>1?'s':''} in intake, not yet accepted: ${proposed.map(i=>`<a href="#" onclick="go('initiative','${i.id}');return false">${esc(i.name)}</a>`).join(', ')}.</p>`:'';
+  const tiles=`<h2 class="sect" style="margin-top:4px">Needs attention <span class="small muted">(${flagged.length} of ${active.length} active)</span></h2>`+(flagged.length?`<div class="tiles">${flagged.map(tile).join('')}</div>`:'<div class="card muted">Nothing flagged.</div>');
+  const tail=closedList+intakeLine;
+  const sel=`<div class="row" style="margin-bottom:10px"><h1 style="margin:0;flex:1">Exec summary</h1>
+    <label class="small muted">View</label><select onchange="snapshotId=this.value;asOf=null;render()"><option value="live" ${snapshotId==='live'?'selected':''}>Live</option>${SNAPSHOTS.map(s=>`<option value="${s.id}" ${snapshotId===s.id?'selected':''}>Snapshot · ${esc(s.label)} (${fmt(s.at)})</option>`).join('')}</select>
+    <button class="sm" onclick="toast('Read-only link copied (demo): …/share/${snapshotId==='live'?'live':snapshotId}/a8f3…')">Copy read-only link</button></div>`;
+  return sel+strip+tiles+`<h2>Timeline</h2><div class="card">${swimlane(inits.filter(i=>i.status!=='closed'))}</div>`+tail;
+}
+
+function monthAxis(start,months,left,mw,top,height){
+  let s='';
+  for(let m=0;m<months;m++){const dt=new Date(start.getFullYear(),start.getMonth()+m,1);const xx=left+m*mw;s+=`<line x1="${xx}" y1="${top-6}" x2="${xx}" y2="${top+height}" stroke="#eee"/><text x="${xx+2}" y="${top-10}" font-size="10" fill="#666">${dt.toLocaleDateString('en-US',{month:'short'})}${(dt.getMonth()===0||m===0)?" '"+String(dt.getFullYear()).slice(2):''}</text>`;}
+  return s;
+}
+const shortDate=x=>fmt(x).replace(/, 20(\d\d)$/," ’$1");
+function swimlane(inits, single){
+  if(single) return initiativeTimeline(inits[0]);
+  const start=new Date('2026-06-01T12:00:00-05:00'), months=20, W=1100, left=230, mw=(W-left-20)/months, rowH=50, top=28, barH=26;
+  const x=dt=>left+((dt-start)/86400000/30.4375)*mw;
+  let s=`<svg viewBox="0 0 ${W} ${top+inits.length*rowH+30}" width="100%" style="min-width:800px">`+monthAxis(start,months,left,mw,top,inits.length*rowH);
+  const tx=x(TODAY); s+=`<line x1="${tx}" y1="${top-6}" x2="${tx}" y2="${top+inits.length*rowH}" stroke="#cf222e" stroke-dasharray="3 3"/><text x="${tx+3}" y="${top+inits.length*rowH+14}" font-size="10" fill="#cf222e">today</text>`;
+  inits.forEach((i,r)=>{const y=top+r*rowH+8; const e=evaluate(i);
+    const nameCol=i.status==='proposed'?'#6e7781':{green:'#1a7f37',amber:'#bf8700',red:'#cf222e'}[e.effective];
+    s+=`<text x="4" y="${y+16}" font-size="12.5" font-weight="600" fill="${nameCol}">${esc(i.name.length>30?i.name.slice(0,29)+'…':i.name)}${i.status==='proposed'?' (proposed)':''}</text>`;
+    if(i.status==='active'&&e.effective==='green') s+=`<text x="4" y="${y+29}" font-size="10" fill="#1a7f37">✓ On track</text>`;
+    i.phases.forEach(([n,ps,pe,fs,fe,st])=>{ const c=STAGES[st===undefined?2:st].color; const w=Math.max(2,x(d(fe))-x(d(fs)));
+      s+=`<rect x="${x(d(ps))}" y="${y}" width="${Math.max(2,x(d(pe))-x(d(ps)))}" height="${barH}" fill="none" stroke="${c}" stroke-width="1.2" rx="3"/>`;
+      s+=`<rect x="${x(d(fs))}" y="${y+6}" width="${w}" height="${barH-12}" fill="${c}" opacity=".8" rx="2"><title>${esc(n)} · planned ${fmt(d(ps))} – ${fmt(d(pe))} · forecast ${fmt(d(fs))} – ${fmt(d(fe))}</title></rect>`;
+      if(w>n.length*6.2+6) s+=`<text x="${x(d(fs))+4}" y="${y+barH/2+3.5}" font-size="9.5" fill="#fff">${esc(n)}</text>`;});
+    i.milestones.filter(m=>m.key).forEach(m=>{const mx=x(d(m.a||m.f||m.p)); const c=m.st==='done'?'#1a7f37':m.st==='slipped'?'#cf222e':'#0969da'; const yy=y-3; s+=`<polygon points="${mx},${yy-6} ${mx+6},${yy} ${mx},${yy+6} ${mx-6},${yy}" fill="${c}" stroke="#fff"><title>${esc(m.n)} · ${m.st} · planned ${fmt(d(m.p))}, forecast ${fmt(d(m.f||m.p))}</title></polygon>`;});
+  });
+  s+=`</svg>`+timelineLegend();
+  return s;
+}
+function timelineLegend(){
+  return `<div class="legend">${STAGES.slice(1,6).map(st=>`<span><span class="swatch" style="background:${st.color}"></span>${st.n}</span>`).join('')}<br><span><span class="swatch" style="border:1.5px solid #0969da;background:none"></span>planned (outline)</span><span><span class="swatch" style="background:#0969da"></span>forecast/actual (filled)</span><span>◆ key milestone: <span style="color:#1a7f37">done</span> · <span style="color:#0969da">on track</span> · <span style="color:#cf222e">slipped</span> (hollow = original plan)</span></div>`;
+}
+function initiativeTimeline(i){
+  // Scale to this initiative ±1 month. One lane per phase: planned bar above, forecast/actual bar below, dates and slip beside.
+  const ds=[]; i.phases.forEach(ph=>ph.slice(1,5).forEach(x=>x&&ds.push(d(x)))); i.milestones.forEach(m=>[m.p,m.f,m.a].forEach(x=>x&&ds.push(d(x)))); ds.push(TODAY);
+  const lo=new Date(Math.min(...ds)), hi=new Date(Math.max(...ds));
+  const start=new Date(lo.getFullYear(),lo.getMonth()-1,1,12), end=new Date(hi.getFullYear(),hi.getMonth()+2,1,12);
+  const months=(end.getFullYear()-start.getFullYear())*12+(end.getMonth()-start.getMonth());
+  const W=1100, left=150, mw=(W-left-20)/months, rowH=58, top=28, barH=16;
+  const x=dt=>left+((dt-start)/86400000/30.4375)*mw;
+  const ms=i.milestones.slice().sort((a,b)=>d(a.a||a.f||a.p)-d(b.a||b.f||b.p));
+  const msH=ms.length?90:0;
+  const H=top+i.phases.length*rowH+msH;
+  let s=`<svg viewBox="0 0 ${W} ${H+20}" width="100%" style="min-width:800px">`+monthAxis(start,months,left,mw,top,H-top);
+  const tx=x(TODAY); s+=`<line x1="${tx}" y1="${top-6}" x2="${tx}" y2="${H}" stroke="#cf222e" stroke-dasharray="3 3"/><text x="${tx+3}" y="${H+12}" font-size="10" fill="#cf222e">today</text>`;
+  const label=(x1,x2,y,txt,col)=>{ const w=x2-x1; const tw=txt.length*5.6; return w>tw+8?`<text x="${x1+4}" y="${y+barH/2+3.5}" font-size="9.5" fill="#fff">${txt}</text>`:`<text x="${x2+5}" y="${y+barH/2+3.5}" font-size="9.5" fill="${col}">${txt}</text>`; };
+  i.phases.forEach(([n,ps,pe,fs,fe,st],r)=>{ const c=STAGES[st===undefined?2:st].color; const y=top+r*rowH+6;
+    s+=`<text x="4" y="${y+barH+4}" font-size="12" font-weight="600" fill="${c}">${esc(n)}</text><text x="4" y="${y+barH+16}" font-size="9.5" fill="#666">${STAGES[st===undefined?2:st].n}</text>`;
+    s+=`<line x1="${left}" y1="${y+rowH-8}" x2="${W-20}" y2="${y+rowH-8}" stroke="#f0f0f0"/>`;
+    // planned
+    const p1=x(d(ps)),p2=x(d(pe)); s+=`<rect x="${p1}" y="${y}" width="${Math.max(2,p2-p1)}" height="${barH}" fill="none" stroke="${c}" stroke-width="1.4" rx="3"/>`+label(p1,p2,y,`Planned ${shortDate(d(ps))} – ${shortDate(d(pe))}`,'#444').replace('fill="#fff"',`fill="${c}"`);
+    // forecast / actual
+    const f1=x(d(fs)),f2=x(d(fe)); const slip=daysBetween(d(pe),d(fe)); const actual=TODAY>d(fe);
+    s+=`<rect x="${f1}" y="${y+barH+6}" width="${Math.max(2,f2-f1)}" height="${barH}" fill="${c}" opacity=".85" rx="3"/>`+label(f1,f2,y+barH+6,`${actual?'Actual':'Forecast'} ${shortDate(d(fs))} – ${shortDate(d(fe))}${slip?` (${slip>0?'+':''}${slip}d)`:''}`,slip>0?'#cf222e':'#444');
+  });
+  if(ms.length){ const y=top+i.phases.length*rowH+18; s+=`<text x="4" y="${y+6}" font-size="12" font-weight="600" fill="#444">Key milestones</text><line x1="${left}" y1="${y+2}" x2="${W-20}" y2="${y+2}" stroke="#ccc"/>`;
+    const lastX=[-1e9,-1e9,-1e9];
+    ms.forEach(m=>{ const mx=x(d(m.a||m.f||m.p)); const c=m.st==='done'?'#1a7f37':m.st==='slipped'?'#cf222e':'#0969da';
+      let lvl=0; while(lvl<2&&mx-lastX[lvl]<110) lvl++; lastX[lvl]=mx; const ly=y+22+lvl*22;
+      if(m.st!=='done'&&m.a==null&&m.f&&m.f!==m.p){const px=x(d(m.p)); s+=`<line x1="${px}" y1="${y+2}" x2="${mx}" y2="${y+2}" stroke="#cf222e" stroke-width="1.5"/><polygon points="${px},${y-3} ${px+5},${y+2} ${px},${y+7} ${px-5},${y+2}" fill="#fff" stroke="#cf222e"><title>${esc(m.n)} originally planned ${fmt(d(m.p))}</title></polygon>`;}
+      s+=`<polygon points="${mx},${y-5} ${mx+7},${y+2} ${mx},${y+9} ${mx-7},${y+2}" fill="${c}" stroke="#fff"><title>${esc(m.n)} · ${m.st} · planned ${fmt(d(m.p))}, forecast ${fmt(d(m.f||m.p))}</title></polygon>`;
+      s+=`<line x1="${mx}" y1="${y+9}" x2="${mx}" y2="${ly-8}" stroke="#ccc"/><text x="${mx}" y="${ly}" font-size="9.5" fill="${c}" text-anchor="middle">${esc(m.n.length>24?m.n.slice(0,23)+'…':m.n)}</text><text x="${mx}" y="${ly+10}" font-size="8.5" fill="#666" text-anchor="middle">${shortDate(d(m.a||m.f||m.p))}${m.a==null&&m.f&&m.f!==m.p?` (was ${shortDate(d(m.p))})`:''}</text>`;});
+  }
+  s+=`</svg>`+timelineLegend();
+  return s;
+}
+// ---------- initiative page ----------
+let initTab='overview'; let closingFu=null;
+const TABS=[['overview','Overview'],['plan','Plan'],['rc','Risks &amp; controls'],['lifecycle','Lifecycle'],['meetings','Meetings'],['history','History']];
+const ymd=x=>x.toISOString().slice(0,10);
+const trunc=(s,n)=>s.length>n?s.slice(0,n-1).trimEnd()+'…':s;
+const Cap=x=>x[0].toUpperCase()+x.slice(1);
+const READY={not_started:'Not started',in_progress:'In progress',submitted:'Submitted',ready:'Ready',sent_back:'Sent back'};
+const CPILL={ready:'green',in_progress:'amber',submitted:'blue',not_started:'red',sent_back:'amber'};
+const CADENCE_DAYS=14;
+const shortMD=x=>new Date(x).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+function checkinInfo(i){ if(i.status!=='active') return null; const u=i.updates[0]; const base=u?u.at:i.accepted; if(!base) return null; const due=addDays(base,CADENCE_DAYS); const left=daysBetween(TODAY,due); return {due,left,over:left<0?-left:0,last:u?u.at:null}; }
+const parseDel=v=>String(v||'').split(',').map(x=>x.trim()).filter(x=>PEOPLE[x]);
+const newSev=f=>{const a={};SEV_Q.forEach(([k])=>{a[k]=!!f.get('q_'+k);});return {answers:a,derived:sevDerive(a),override:null};};
+const nextKey=i=>i.milestones.filter(m=>m.key&&m.st!=='done').sort((a,b)=>d(a.f||a.p)-d(b.f||b.p))[0]||nextMilestone(i);
+// Meetings: each tagged to one lifecycle stage; What / Who / Result + tracked follow-ups.
+let MEETINGS=[
+ {id:'m1',init:'cbm',at:d('2026-10-21'),stage:2,what:'Connector defects and certification evidence format',who:'John, Jane, Internal Audit lead',result:'Vendor committed to clear ERP and HR connector defects by Nov 20. Evidence format still to be agreed with Internal Audit.',
+  fups:[{id:'m1-0',text:'Agree certification evidence format with Internal Audit',owner:'John',due:'2026-10-30',status:'open'},{id:'m1-1',text:'Confirm Q4 certification cycle owner with sponsor',owner:'Jane',due:'2026-11-20',status:'open'}]},
+ {id:'m2',init:'cbm',at:d('2026-08-18'),stage:1,what:'Control impact assessment review',who:'John, Jane, IAM control owners',result:'Four controls mapped. Privileged access (ITGC-LA-04) flagged as the open gap.',
+  fups:[{id:'m2-0',text:'Share final control impact list with Tech Risk',owner:'John',due:'2026-08-25',status:'done',closedAt:d('2026-08-24'),closedBy:'E00101',closedNote:'List sent and filed with the design sign-off pack.'}]},
+ {id:'m3',init:'idp',at:d('2026-10-29'),stage:1,what:'Change approval model review',who:'Adam Brown, Jane',result:'Approval model accepted in principle. Cut-over date per system to be fixed.',
+  fups:[{id:'m3-0',text:'Draft cut-over plan per in-scope system',owner:'Adam Brown',due:'2026-11-12',status:'open'}]},
+];
+const fuList=i=>MEETINGS.filter(m=>m.init===i.id).flatMap(m=>m.fups.map(f=>({m,f})));
+const overdueDays=f=>f.status==='open'&&f.due&&d(f.due)<TODAY?daysBetween(d(f.due),TODAY):0;
+const overduePill=f=>{const n=overdueDays(f);return n?`<span class="pill red">Overdue · ${n}d</span>`:'';};
+const stagePill=k=>`<span class="pill" style="background:${STAGES[k].color}">${STAGES[k].n}</span>`;
+
+function rInitiative(i, ownerMode){
+  const e=evaluate(i); const tr=role.id==='tech_risk'; const own=ownerMode||(role.id==='owner'&&i.owner===role.emp);
+  const stale=e.stale;
+  const staleB=stale!==null&&stale>THRESH.amber_stale?`<span class="pill stale">Stale · ${stale}d</span>`:'';
+  const ovB=e.override&&seesOverride()?`<span class="pill override" title="Override reasoning and support" style="cursor:pointer" onclick="showOverride('${i.id}')">Overridden: ${Cap(e.derived)} → ${Cap(e.effective)} ›</span>`:'';
+  const hdr=`<div class="row" style="margin-bottom:8px"><h1 style="margin:0;flex:1">${esc(i.name)} ${staleB} ${ovB}</h1>${!own?`<a href="#exec" onclick="go('exec');return false">← Exec summary</a>`:''}</div>`;
+  const st=stageOf(i); const sl=i.baseline&&i.goLive?daysBetween(i.baseline,i.goLive):0;
+  const nm=i.status==='closed'?null:nextKey(i);
+  const u0=i.updates[0];
+  const luCls=stale!==null&&stale>THRESH.amber_stale?'red':stale!==null&&stale>THRESH.early_stale?'amber':'';
+  const luTip=(u0?`Last posted update ${fmt(u0.at)} by ${name(u0.by)}`:'No update posted')+`. Flagged stale after ${THRESH.amber_stale}d; field edits do not reset it.`;
+  const ragEl=i.status==='proposed'?'<span class="pill outline">Proposed</span>':i.status==='closed'?'<span class="pill outline">Closed</span>':pill(e.effective);
+  const chip=i.status==='active'&&e.chip?` <span class="chip ${e.derived}" title="${esc(e.rule)}">${esc(e.chip)}</span>`:'';
+  const F=(l,v,extra='')=>`<div class="fact" ${extra}><span class="l">${l}</span><span class="v">${v}</span></div>`;
+  const canCheck=(own||tr)&&i.status==='active';
+  const ci0=checkinInfo(i); const ciTxt=ci0?(ci0.over>0?`<span class="red">Check-in overdue ${ci0.over}d</span>`:`<span class="${ci0.left<=3?'amber':''}">Check-in due ${shortMD(ci0.due)}</span>`):'—';
+  const strip=`<div class="sum">${F('RAG',ragEl+chip)}${F('Stage',STAGES[st].n)}${F('Oversight',sevPill(i,tr))}${F('Go-live',`${fmt(i.goLive)}${sl?` · <span class="chip ${sl>0?'red':'grn'}" title="Versus baseline ${fmt(i.baseline)}">${sl>0?`slipped ${sl}d`:`${-sl}d early`}</span>`:''}`)}${F('Next milestone',nm?`${esc(nm.n)} · ${fmt(d(nm.f||nm.p))}`:'—')}${F('Updates',ciTxt,`title="${esc(u0?'Last update '+shortMD(u0.at):'No update posted')}"`)}${canCheck?`<button class="primary" style="margin-left:auto" onclick="checkIn('${i.id}')">Check in</button>`:''}</div>`;
+  const tabs=`<div class="tabs">${TABS.map(([k,l])=>`<button class="${initTab===k?'on':''}" onclick="initTab='${k}';render()">${l}</button>`).join('')}</div>`;
+  let body;
+  if(initTab==='plan') body=tabPlan(i,own||tr);
+  else if(initTab==='rc') body=tabRisks(i,tr);
+  else if(initTab==='lifecycle') body=stagePanel(i,tr);
+  else if(initTab==='meetings') body=tabMeetings(i,tr);
+  else if(initTab==='history') body=tabHistory(i,tr);
+  else body=tabOverview(i,e,tr);
+  return hdr+strip+tabs+body;
+}
+function tabOverview(i,e,tr){
+  const hls=i.overlays.filter(o=>o.t==='highlight'&&canSee(o.vis,i));
+  const notes=i.overlays.filter(o=>o.t!=='highlight'&&canSee(o.vis,i));
+  const visSel=(coll,k,v)=>`<select class="sm" style="padding:1px 4px;font-size:11px" onchange="setVis('${i.id}','${coll}',${k},this.value)">${['internal','owner','exec'].map(x=>`<option value="${x}" ${v===x?'selected':''}>${x==='exec'?'exec/audit':x}</option>`).join('')}</select>`;
+  const full=(i.desc||'')+(i.why?' '+i.why:'');
+  const desc=i.desc?`<div class="muted small" title="${esc(full)}" style="margin-bottom:10px">${esc(trunc(i.desc,160))}</div>`:'';
+  const hl=`<div class="card"><h3 style="margin-top:0">Highlights</h3>${hls.length?`<ul style="margin:0;padding-left:18px">${hls.map(h=>`<li>${esc(h.text)}${tr&&h.vis!=='exec'?visTag(h.vis):''}</li>`).join('')}</ul>`:'<span class="muted small">None</span>'}${tr?'':notes.map(o=>`<div class="note ${o.vis==='owner'?'owner':''}">${esc(o.text)}</div>`).join('')}</div>`;
+  const u=i.updates[0];
+  const upd=`<div class="card"><h3 style="margin-top:0">Latest update</h3>${u?`<div class="small muted">${fmt(u.at)} · ${name(u.by)}</div><div>${esc(u.text)}</div>`:'<span class="muted small">None posted</span>'}</div>`;
+  const open=fuList(i).filter(x=>x.f.status==='open').sort((a,b)=>(a.f.due||'9').localeCompare(b.f.due||'9'));
+  const fu=open.length?`<div class="card"><h3 style="margin-top:0">Open follow-ups</h3><table><tr><th>Follow-up</th><th>Owner</th><th>Due</th><th></th></tr>${open.map(({f})=>`<tr><td>${esc(f.text)}</td><td>${esc(f.owner)}</td><td>${f.due?fmt(d(f.due)):'—'}</td><td>${overduePill(f)}</td></tr>`).join('')}</table></div>`:'';
+  const ownLine=`<div class="small muted" style="margin-bottom:8px">Owner: ${esc(name(i.owner))} · Delegates: ${i.delegates.length?i.delegates.map(k=>esc(name(k))).join(', '):'none'}${tr?` · <a href="#" onclick="ownerModal('${i.id}');return false">Change</a>`:''}</div>`;
+  let out=ownLine+desc+hl+upd+fu;
+  if(tr){
+    const hlAll=i.overlays.filter(o=>o.t==='highlight');
+    const rag=i.status==='active'?`<div class="card"><h3 style="margin-top:0">RAG rules</h3>${e.fired.length?e.fired.map(f=>`<div class="small">${pill(f[0],f[0])} ${esc(f[1])}</div>`).join(''):'<span class="muted small">None fired</span>'}${e.override?`<div class="small" style="margin-top:6px">Override ${pill(e.override.value)} · ${name(e.override.by)}, ${fmt(e.override.at)} · review by ${e.override.review?fmt(e.override.review):'—'}</div>`:`<details style="margin-top:6px"><summary class="small" style="cursor:pointer;color:var(--accent)">Set override…</summary><form class="f" onsubmit="setOverride(event,'${i.id}')"><select name="v" style="width:auto"><option value="green">Green</option><option value="amber">Amber</option><option value="red">Red</option></select><label>Reasoning</label><textarea name="r" rows="2" required></textarea><label>Supporting evidence</label><textarea name="s" rows="2" required></textarea><label>Review by</label><input type="date" name="d" required><div style="margin-top:6px"><button class="primary sm">Set override</button></div></form></details>`}</div>`:'';
+    const cur=`<div class="card" style="border-color:#8250df"><h3 style="margin-top:0">Curate</h3>
+      <div class="small muted" style="margin-bottom:4px">Exec tile preview</div>
+      <div class="tile ${e.effective}" style="cursor:default"><h3>${esc(i.name)}</h3>${priorLine(i)}<ul>${hlAll.filter(o=>o.vis==='exec').slice(0,3).map(h=>`<li>${esc(h.text)}</li>`).join('')||'<li class="muted">No highlights</li>'}</ul></div>
+      <table style="margin-top:8px"><tr><th>Highlights</th><th style="width:110px">Visibility</th><th style="width:90px"></th></tr>${hlAll.map((o,k)=>`<tr class="${o.vis!=='exec'?'hidden-row':''}"><td>${esc(o.text)}</td><td>${visSel('overlays',i.overlays.indexOf(o),o.vis)}</td><td><button class="sm" onclick="moveHl('${i.id}',${k},-1)">↑</button><button class="sm" onclick="moveHl('${i.id}',${k},1)">↓</button><button class="sm" onclick="removeHl('${i.id}',${i.overlays.indexOf(o)})">×</button></td></tr>`).join('')}</table>
+      <form class="f row" onsubmit="addHl(event,'${i.id}')" style="margin-top:6px"><input name="t" required placeholder="New highlight" style="flex:1"><button class="sm">Add</button></form>
+      <h3>Commentary &amp; notes</h3>${notes.map(o=>`<div class="note ${o.vis==='internal'?'internal':o.vis==='owner'?'owner':''}"><span class="small muted">${o.t==='internal_note'?'Internal note':'Commentary'}</span> ${visSel('overlays',i.overlays.indexOf(o),o.vis)}<br>${esc(o.text)}</div>`).join('')||'<span class="muted small">None</span>'}
+      <form class="f" onsubmit="addNote(event,'${i.id}')"><div class="row" style="margin-top:6px"><select name="k" style="width:auto"><option value="commentary">Commentary (exec-visible)</option><option value="internal_note">Internal note</option></select></div><textarea name="t" rows="2" required placeholder="Write…"></textarea><div style="margin-top:6px"><button class="sm">Add</button></div></form>
+      <div class="small muted" style="margin-top:8px">Last curated ${lastTouch[i.id]?fmt(lastTouch[i.id]):'never'}</div></div>`;
+    out+=rag+cur;
+  }
+  return out;
+}
+function tabPlan(i,canEdit){
+  const ms=`<h2>Milestones</h2><table><tr><th>Milestone</th><th>Key</th><th>Status</th><th>Planned</th><th>Forecast</th><th>Actual</th><th>%</th><th>Slip (d)</th><th>Note</th></tr>${i.milestones.map(m=>{const cmp=m.a||m.f;const slip=cmp?daysBetween(d(m.p),d(cmp)):null;return `<tr><td>${esc(m.n)}</td><td>${m.key?'●':''}</td><td>${pill(m.st==='done'?'green':m.st==='slipped'?'red':m.st==='on_track'?'green':'grey',m.st.replace('_',' '))}</td><td>${fmt(d(m.p))}</td><td>${m.f?fmt(d(m.f)):'—'}</td><td>${m.a?fmt(d(m.a)):'—'}</td><td>${m.pct}%</td><td>${slip!==null?(slip>0?'+'+slip:slip):'—'}</td><td class="small">${esc(m.note||'')}</td></tr>`;}).join('')}</table>`;
+  return `<div class="card">${swimlane([i],true)}</div>${ms}${canEdit?`<div class="small" style="margin-top:8px"><a href="#" onclick="toast('Detailed edit pages');return false">More edits</a></div>`:''}`;
+}
+function tabRisks(i,tr){
+  const visSel=(coll,k,v)=>`<select class="sm" style="padding:1px 4px;font-size:11px" onchange="setVis('${i.id}','${coll}',${k},this.value)">${['internal','owner','exec'].map(x=>`<option value="${x}" ${v===x?'selected':''}>${x==='exec'?'exec/audit':x}</option>`).join('')}</select>`;
+  const risks=i.risks.filter(r=>canSee(r.vis,i));
+  const rk=`<h2>Risks &amp; issues</h2><table><tr><th>Type</th><th>Title</th><th>Rating</th><th>Owner</th><th>Target</th><th>Status</th><th>Mitigation</th>${tr?'<th>Source</th><th>Visibility</th>':''}</tr>${risks.map(r=>`<tr class="${tr&&r.vis!=='exec'?'hidden-row':''}"><td>${r.t}</td><td>${esc(r.title)}${tr&&r.vis!=='exec'?' <span class="tag internal">hidden from exec</span>':''}</td><td>${pill(r.r==='H'?'red':r.r==='M'?'amber':'green',r.r)}</td><td>${esc(r.owner)}</td><td>${r.tgt?fmt(d(r.tgt)):'—'}${r.tgt&&d(r.tgt)<TODAY&&r.st!=='closed'?' <span class="small" style="color:var(--red)">past</span>':''}</td><td>${r.st}</td><td class="small">${esc(r.mit)}</td>${tr?`<td>${r.src==='tech_risk'?'Tech Risk':'Owner'}</td><td>${visSel('risks',i.risks.indexOf(r),r.vis)}</td>`:''}</tr>`).join('')||`<tr><td colspan="${tr?9:7}" class="muted">None</td></tr>`}</table>`;
+  const ci=`<h2>Control impact</h2><table><tr><th>Control</th><th>Framework</th><th>Impact</th><th>Compensating control</th><th>Status</th><th>Evidence</th>${tr?'<th></th>':''}</tr>${i.controls.map((c,k)=>{const ctl=CONTROLS.find(x=>x.id===c.c);return `<tr><td><a href="#" title="Guidance in TRAC" onclick="toast('Opens the TRAC guidance for ${c.c}');return false"><b>${c.c}</b></a><br><span class="small">${esc(ctl.name)}</span></td><td>${ctl.fw}</td><td>${c.type}</td><td class="small">${esc(c.comp)||'—'}</td><td>${pill(CPILL[c.ready],READY[c.ready])}${c.ready==='sent_back'&&c.comment&&role.id!=='senior_management'?`<div class="small" style="color:#7d4e00">${esc(c.comment)}</div>`:''}</td><td>${c.ev?`<a href="${esc(c.ev)}">link</a>`:'—'}</td>${tr?`<td style="white-space:nowrap">${c.ready==='submitted'?`<button class="sm primary" onclick="acceptCtl('${i.id}',${k})">Accept</button> <button class="sm" onclick="sendBackCtl('${i.id}',${k})">Send back</button>`:''}</td>`:''}</tr>`;}).join('')||`<tr><td colspan="7" class="muted">None</td></tr>`}</table>`;
+  return rk+ci;
+}
+function tabHistory(i,tr){
+  const aud=role.id==='auditor';
+  const log=`<h2>Updates</h2>${i.updates.map(u=>`<div class="card"><div class="small muted">${fmtDT(u.at)} · ${name(u.by)}</div><div>${esc(u.text)}</div>${Object.keys(u.diff).length?`<div class="small diff" style="margin-top:6px">${Object.entries(u.diff).map(([k,[a,b]])=>`<div>${esc(k)}: <del>${esc(a)}</del> → <ins>${esc(b)}</ins></div>`).join('')}</div>`:''}</div>`).join('')||'<div class="muted">None posted</div>'}`;
+  const hist=(tr||aud)?`<h2>Field-level history</h2><table><tr><th>When</th><th>Who</th><th>Field</th><th>From</th><th>To</th></tr>${i.history.slice().sort((a,b)=>b.at-a.at).map(h=>`<tr><td class="small">${fmtDT(h.at)}</td><td>${name(h.by)}</td><td>${esc(h.field)}</td><td class="diff"><del>${esc(h.from)}</del></td><td class="diff"><ins>${esc(h.to)}</ins></td></tr>`).join('')}</table>`:'';
+  return log+hist;
+}
+function tabMeetings(i,tr){
+  const ms=MEETINGS.filter(m=>m.init===i.id).sort((a,b)=>b.at-a.at);
+  const head=tr?`<div style="margin-bottom:10px"><button class="primary sm" onclick="logMeeting('${i.id}')">Log a meeting</button></div>`:'';
+  const card=m=>`<div class="card" id="mtg-${m.id}"><div style="margin-bottom:6px"><b>${fmt(m.at)}</b> ${stagePill(m.stage)}</div>
+    <dl class="kv"><dt>What</dt><dd>${esc(m.what)}</dd><dt>Who</dt><dd>${esc(m.who)}</dd><dt>Result / next steps</dt><dd>${esc(m.result)}</dd></dl>
+    ${m.fups.length?`<table style="margin-top:8px"><tr><th>Follow-up</th><th>Owner</th><th>Due</th><th>Status</th>${tr?'<th></th>':''}</tr>${m.fups.map(f=>`<tr><td>${esc(f.text)}</td><td>${esc(f.owner)}</td><td>${f.due?fmt(d(f.due)):'—'}</td><td>${f.status==='done'?`Done ${fmt(f.closedAt)}<br><span class="small muted">${esc(f.closedNote||'')}</span>`:`Open ${overduePill(f)}`}</td>${tr?`<td>${f.status==='open'?(closingFu===f.id?`<form class="f row" onsubmit="closeFu(event,'${m.id}','${f.id}')"><input name="n" required placeholder="Closure note" style="flex:1"><button class="sm primary">Done</button><button type="button" class="sm" onclick="closingFu=null;render()">Cancel</button></form>`:`<button class="sm" onclick="closingFu='${f.id}';render()">Mark done</button>`):''}</td>`:''}</tr>`).join('')}</table>`:''}</div>`;
+  return head+(ms.map(card).join('')||'<div class="muted">No meetings logged</div>');
+}
+function logMeeting(id){const i=INITS.find(x=>x.id===id);
+  document.getElementById('modal').innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal"><button class="close sm" onclick="closeModal()">Cancel</button><h2>Log a meeting</h2>
+   <form class="f" onsubmit="saveMeeting(event,'${id}')">
+   <div class="row"><div><label>Date</label><input type="date" name="dt" value="${ymd(TODAY)}" required></div><div style="flex:1"><label>Stage</label><select name="sg">${STAGES.map((s,k)=>`<option value="${k}" ${k===stageOf(i)?'selected':''}>${k}. ${s.n}</option>`).join('')}</select></div></div>
+   <label>What</label><input name="what" required placeholder="Topic or purpose">
+   <label>Who</label><input name="who" required placeholder="Attendees">
+   <label>Result / next steps</label><textarea name="res" rows="3" required placeholder="Outcome and decisions"></textarea>
+   <label>Follow-ups</label>${[0,1,2].map(k=>`<div class="row" style="margin-bottom:4px"><input name="ft${k}" placeholder="Follow-up" style="flex:2"><input name="fo${k}" placeholder="Owner" style="flex:1"><input type="date" name="fd${k}" style="width:150px"></div>`).join('')}
+   <div style="margin-top:10px"><button class="primary">Save meeting</button></div></form></div></div>`;}
+function saveMeeting(ev,id){ev.preventDefault();const f=new FormData(ev.target);const i=INITS.find(x=>x.id===id);
+  const what=(f.get('what')||'').trim(),who=(f.get('who')||'').trim(),res=(f.get('res')||'').trim();
+  if(!what||!who||!res||!f.get('dt')){toast('Date, what, who and result are required');return;}
+  const mid='m'+Date.now(); const sg=parseInt(f.get('sg'),10); const fups=[];
+  [0,1,2].forEach(k=>{const t=(f.get('ft'+k)||'').trim(); if(t) fups.push({id:`${mid}-${k}`,text:t,owner:(f.get('fo'+k)||'').trim(),due:f.get('fd'+k)||'',status:'open'});});
+  MEETINGS.push({id:mid,init:id,at:d(f.get('dt')),stage:STAGES[sg]?sg:stageOf(i),what,who,result:res,fups});
+  touch(id); i.history.push({at:TODAY,by:role.emp,field:'meeting logged',from:'—',to:`${fmt(d(f.get('dt')))} · ${what}`});
+  closeModal(); toast('Meeting logged'); render();}
+function closeFu(ev,mid,fid){ev.preventDefault();const note=(new FormData(ev.target).get('n')||'').trim();if(!note){toast('Add a closure note');return;}
+  const m=MEETINGS.find(x=>x.id===mid);const f=m.fups.find(x=>x.id===fid);const i=INITS.find(x=>x.id===m.init);
+  f.status='done';f.closedAt=TODAY;f.closedBy=role.emp;f.closedNote=note;closingFu=null;touch(i.id);
+  i.history.push({at:TODAY,by:role.emp,field:`follow-up "${f.text.slice(0,40)}"`,from:'open',to:`done (${note})`});toast('Follow-up closed');render();}
+
+function checkIn(id){const i=INITS.find(x=>x.id===id);const m=nextKey(i);
+  const CH=[['not_started','Not started'],['in_progress','In progress'],['submitted','Submit for review']];
+  const open=i.controls.map((c,k)=>({c,k})).filter(x=>x.c.ready!=='ready');
+  const back=[];STAGES.forEach((st,k)=>st.check.forEach((t,j)=>{const c=((CHECKS[id]||{})[k]||{})[j];if(c&&c.status==='sent_back')back.push({k,t,c});}));
+  const row=({c,k})=>{const cur=CH.some(x=>x[0]===c.ready)?c.ready:'';return `<div style="margin-bottom:8px"><div class="row" style="gap:8px"><b style="width:100px">${c.c}</b><span class="small muted" style="width:140px">${esc(shortName(c.c))}</span><input type="hidden" name="c${k}" id="cs${k}" value="${cur}"><div class="seg">${CH.map(([v,l])=>`<button type="button" class="sm ${cur===v?'on':''}" onclick="setCtl(${k},'${v}',this)">${l}</button>`).join('')}</div></div>${c.ready==='sent_back'?`<div class="note small">Tech Risk: ${esc(c.comment||'')}</div>`:''}<div id="ce${k}" style="display:${cur==='submitted'?'block':'none'};margin-top:4px"><input name="e${k}" value="${esc(c.ev||'')}" placeholder="Evidence link (required)"></div></div>`;};
+  document.getElementById('modal').innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal"><button class="close sm" onclick="closeModal()">Cancel</button><h2>Check in · ${esc(i.name)}</h2>
+   <form class="f" onsubmit="saveCheckIn(event,'${id}')">
+   <label>What's changed?</label><textarea name="t" rows="2" required placeholder="One or two lines for leadership"></textarea>
+   <label>Go-live date</label><input type="date" name="gl" value="${i.goLive?ymd(i.goLive):''}">
+   ${m?`<label>Next key milestone: <b>${esc(m.n)}</b></label><div class="row"><div>Forecast <input type="date" name="mf" value="${ymd(d(m.f||m.p))}"></div><div>% complete <input type="number" name="mp" min="0" max="100" value="${m.pct}" style="width:90px"></div></div>`:''}
+   <label>Controls</label>${open.map(row).join('')||`<span class="muted small">${i.controls.length?'All controls ready':'None mapped'}</span>`}
+   ${back.length?`<label>Sent back by Tech Risk</label>${back.map(b=>`<div class="note small"><b>${STAGES[b.k].n}</b> — ${esc(b.t)}<br>${esc(b.c.comment||'')}</div>`).join('')}<a class="small" href="#" onclick="closeModal();initTab='lifecycle';render();return false">Open lifecycle</a>`:''}
+   <label>Add a risk or issue (optional)</label><div class="row"><input name="rt" placeholder="One-line title" style="flex:1"><select name="rr" style="width:auto"><option value="H">H</option><option value="M" selected>M</option><option value="L">L</option></select></div>
+   <div style="margin-top:10px"><button class="primary">Post check-in</button></div></form></div></div>`;}
+function setCtl(k,v,btn){document.getElementById('cs'+k).value=v;Array.from(btn.parentNode.children).forEach(x=>x.classList.toggle('on',x===btn));document.getElementById('ce'+k).style.display=v==='submitted'?'block':'none';}
+function saveCheckIn(ev,id){ev.preventDefault();const f=new FormData(ev.target);const i=INITS.find(x=>x.id===id);
+  const t=(f.get('t')||'').trim(); if(!t){toast('Add what changed');return;}
+  for(let k=0;k<i.controls.length;k++){const c=i.controls[k],v=f.get('c'+k); if(c.ready!=='ready'&&v==='submitted'&&!(f.get('e'+k)||'').trim()){toast(`Add an evidence link for ${c.c}`);return;}}
+  const diff={}; const chg=(dk,hf,a,b)=>{diff[dk]=[String(a),String(b)];i.history.push({at:TODAY,by:role.emp,field:hf,from:String(a),to:String(b)});};
+  const setFc=(x,nf)=>{const old=x.f||x.p; x.f=nf; chg(`milestone ${x.n}.forecast`,`${x.n} · forecast`,fmt(d(old)),fmt(d(nf)));
+    if(x.st!=='done'){const ns=nf>x.p?'slipped':(x.st==='slipped'?'on_track':x.st); if(ns!==x.st){chg(`milestone ${x.n}.status`,`${x.n} · status`,x.st,ns);x.st=ns;}}};
+  const m=nextKey(i); const m0=m?{f:m.f||m.p,pct:m.pct}:null;
+  const gl=f.get('gl');
+  if(gl&&(!i.goLive||ymd(i.goLive)!==gl)){const old=i.goLive; i.goLive=d(gl); chg('goLive','target_go_live',fmt(old),fmt(i.goLive));
+    if(old) i.milestones.filter(x=>/^go-live/i.test(x.n)&&x.f===ymd(old)).forEach(x=>setFc(x,gl));}
+  if(m){const mf=f.get('mf'),p=parseInt(f.get('mp'),10);
+    if(mf&&mf!==m0.f) setFc(m,mf);
+    if(!isNaN(p)&&p>=0&&p<=100&&p!==m0.pct){m.pct=p;chg(`milestone ${m.n}.% complete`,`${m.n} · % complete`,m0.pct+'%',p+'%');}}
+  i.controls.forEach((c,k)=>{const v=f.get('c'+k); if(c.ready==='ready'||!['not_started','in_progress','submitted'].includes(v)) return; const e=(f.get('e'+k)||'').trim();
+    if(v!==c.ready){chg(`control ${c.c}.status`,`${c.c} · status`,READY[c.ready],READY[v]);
+      if(v==='submitted'){c.ev=e;c.sBy=role.emp;c.sAt=TODAY;delete c.comment;} else if(c.ready==='sent_back') delete c.comment; c.ready=v;}
+    else if(v==='submitted'&&e!==c.ev){chg(`control ${c.c}.evidence`,`${c.c} · evidence`,c.ev||'—',e);c.ev=e;}});
+  const rt=(f.get('rt')||'').trim();
+  if(rt){const rr=['H','M','L'].includes(f.get('rr'))?f.get('rr'):'M'; i.risks.push({t:'risk',title:rt,r:rr,owner:name(i.owner),tgt:null,st:'open',mit:'',src:role.id==='tech_risk'?'tech_risk':'owner',vis:'exec'}); chg('risk added',`risk "${rt.slice(0,40)}" · added`,'—',`${rr} · ${rt}`);}
+  i.updates.unshift({at:TODAY,by:role.emp,text:t,diff});
+  closeModal(); toast('Check-in posted'); render();}
+function acceptCtl(id,k){const i=INITS.find(x=>x.id===id);const c=i.controls[k];if(!c||c.ready!=='submitted')return;touch(id);hist(i,`${c.c} · status`,'Submitted','Ready');c.ready='ready';delete c.comment;toast('Control accepted');render();}
+function sendBackCtl(id,k){const i=INITS.find(x=>x.id===id);const c=i.controls[k];openModal('Send back',`<p style="margin:0 0 6px"><b>${c.c}</b> — ${esc(shortName(c.c))}</p><form class="f" onsubmit="saveSendBackCtl(event,'${id}',${k})"><label>Comment (required)</label><textarea name="c" rows="2" required></textarea><div style="margin-top:10px"><button class="primary">Send back</button></div></form>`);}
+function saveSendBackCtl(ev,id,k){ev.preventDefault();const cm=(new FormData(ev.target).get('c')||'').trim();if(!cm){toast('Add a comment');return;}
+  const i=INITS.find(x=>x.id===id);const c=i.controls[k];touch(id);hist(i,`${c.c} · status`,'Submitted',`Sent back (${cm})`);c.ready='sent_back';c.comment=cm;closeModal();toast('Sent back to owner');render();}
+function ownerModal(id){if(role.id!=='tech_risk')return;const i=INITS.find(x=>x.id===id);const ppl=Object.entries(PEOPLE);
+  openModal(`Owner and delegates — ${esc(i.name)}`,`<form class="f" onsubmit="saveOwner(event,'${id}')"><label>Owner</label><select name="o">${ppl.map(([k,p])=>`<option value="${k}" ${i.owner===k?'selected':''}>${esc(p.name)}</option>`).join('')}</select><div style="margin-top:8px"><button class="primary sm">Save owner</button></div></form>
+   <h3>Delegates</h3>${i.delegates.length?i.delegates.map(k=>`<div class="row" style="margin-bottom:4px"><span>${esc(name(k))}</span><button class="sm" onclick="delDelegate('${id}','${k}')">Remove</button></div>`).join(''):'<div class="muted small">None</div>'}
+   <form class="f row" style="margin-top:8px" onsubmit="addDelegate(event,'${id}')"><select name="p" style="flex:1">${ppl.filter(([k])=>k!==i.owner&&!i.delegates.includes(k)).map(([k,p])=>`<option value="${k}">${esc(p.name)}</option>`).join('')}</select><button class="sm">Add</button></form>`);}
+function saveOwner(ev,id){ev.preventDefault();const o=new FormData(ev.target).get('o');const i=INITS.find(x=>x.id===id);if(!PEOPLE[o]||o===i.owner){closeModal();return;}
+  touch(id);hist(i,'Owner',name(i.owner),name(o));i.owner=o;i.delegates=i.delegates.filter(k=>k!==o);closeModal();toast('Owner changed and logged');render();}
+function addDelegate(ev,id){ev.preventDefault();const p=new FormData(ev.target).get('p');const i=INITS.find(x=>x.id===id);if(!PEOPLE[p]||p===i.owner||i.delegates.includes(p))return;
+  touch(id);hist(i,'Delegates',i.delegates.map(name).join(', ')||'none',i.delegates.concat(p).map(name).join(', '));i.delegates.push(p);toast('Delegate added');render();ownerModal(id);}
+function delDelegate(id,p){const i=INITS.find(x=>x.id===id);if(!i.delegates.includes(p))return;touch(id);const rest=i.delegates.filter(k=>k!==p);hist(i,'Delegates',i.delegates.map(name).join(', '),rest.map(name).join(', ')||'none');i.delegates=rest;toast('Delegate removed');render();ownerModal(id);}
+let lastReminder='';
+function remindModal(id){const i=INITS.find(x=>x.id===id);lastReminder=`Hi ${name(i.owner).split(' ')[0]}, your check-in for ${i.name} is overdue.\nTwo minutes here: https://tracker.example/check-in/${i.id}`;
+  openModal('Copy reminder',`<textarea id="remindTxt" rows="3" readonly style="width:100%">${esc(lastReminder)}</textarea><div style="margin-top:10px"><button class="primary" onclick="copyReminder()">Copy</button></div>`);}
+function copyReminder(){const t=document.getElementById('remindTxt');
+  const sel=()=>{try{t.focus();t.select();}catch(e){} toast('Press Ctrl+C to copy');};
+  try{navigator.clipboard.writeText(lastReminder).then(()=>toast('Copied'),sel);}catch(e){sel();}}
+
+
+let wbTab='triage';
+const lastTouch={cbm:d('2026-11-02'),idp:d('2026-10-20'),erp:d('2026-11-04'),dwh:d('2026-09-25'),legacy:d('2026-10-12')};
+const touch=id=>{lastTouch[id]=TODAY;};
+function triageRows(){
+  const s=lastSnap(); const rows={Decide:[],Confirm:[],Review:[],Chase:[]};
+  INITS.filter(i=>i.status==='proposed').forEach(i=>rows.Decide.push({i,what:'Intake submitted',since:i.submitted,sev:'grey',act:'decide'}));
+  INITS.filter(i=>i.status==='active').forEach(i=>{const e=evaluate(i);
+    if(e.toGo!==null&&e.toGo<=60){const nr=i.controls.filter(c=>c.ready!=='ready'); if(nr.length) rows.Confirm.push({i,what:`Go-live in ${e.toGo}d; ${nr.length} control${nr.length>1?'s':''} not ready (${nr.map(c=>c.c).join(', ')})`,since:null,sev:'red'});}
+    i.risks.filter(r=>r.r==='H'&&r.st!=='closed').forEach(r=>{ if(!s||!s.rows[i.id]||true) rows.Confirm.push({i,what:`High ${r.t}: ${r.title}${r.tgt&&d(r.tgt)<TODAY?' — past target':''}`,since:r.tgt?d(r.tgt):null,sev:r.tgt&&d(r.tgt)<TODAY?'red':'amber',sinceLabel:'target'});});
+    if(s&&s.rows[i.id]&&s.rows[i.id].rag!==e.effective) rows.Review.push({i,what:`RAG changed since ${s.label.split(' ').slice(0,2).join(' ')}: ${s.rows[i.id].rag} → ${e.effective}`,since:s.at,sev:ORD[e.effective]>ORD[s.rows[i.id].rag]?'amber':'green'});
+    if(e.override) rows.Review.push({i,what:`Override ${e.override.value} in place (derived ${e.derived}) — review by ${e.override.review?fmt(e.override.review):'—'}`,since:e.override.at,sev:e.override.review&&e.override.review<TODAY?'red':'grey'});
+    const cur=stageOf(i); for(let k=0;k<cur;k++){const n=stageInfo(i,k); if(!n.complete) rows.Confirm.push({i,what:`Stage ${k} ${STAGES[k].n} incomplete: ${n.done}/${n.total} items complete${n.gate&&!n.g?', gate review not recorded':n.g&&n.g.decision==='hold'?', gate on hold':''}`,since:null,sev:'amber'});}
+    i.controls.filter(c=>c.ready==='submitted').forEach(c=>rows.Review.push({i,what:`Evidence submitted: ${c.c}`,since:c.sAt||null,sev:'blue',open:'rc'}));
+    STAGES.forEach((st,k)=>st.check.forEach((t,j)=>{const c=((CHECKS[i.id]||{})[k]||{})[j]; if(c&&c.status==='submitted') rows.Review.push({i,what:`Evidence submitted: ${trunc(t,70)}`,since:c.sAt,sev:'blue',open:'lifecycle'});}));
+    const ci=checkinInfo(i); if(ci&&ci.over>0) rows.Chase.push({i,what:`Check-in overdue ${ci.over}d${e.stale>THRESH.amber_stale?' — flagged stale on exec summary':''}`,since:ci.due,sev:e.stale>THRESH.amber_stale?'amber':'grey',remind:true});});
+  return rows;
+}
+function rWorkbench(){
+  const tabs=[['triage','Triage'],['snapshots','Snapshots'],['admin','Admin']];
+  const rows=triageRows(); const n=Object.values(rows).reduce((a,r)=>a+r.length,0);
+  const head=`<h1>Tech Risk workbench</h1><div class="tabs" id="wbtabs">${tabs.map(([k,l])=>`<button class="${wbTab===k?'on':''}" onclick="wbTab='${k}';render()">${l}${k==='triage'?` · ${n}`:''}</button>`).join('')}</div>`;
+  if(wbTab==='triage') return head+rTriage(rows);
+  if(wbTab==='snapshots') return head+rSnapshots();
+  return head+rAdmin();
+}
+function rTriage(rows){
+  const flaggedIds=new Set(Object.values(rows).flat().map(r=>r.i.id));
+  const quiet=INITS.filter(i=>i.status==='active'&&!flaggedIds.has(i.id));
+  let out='';
+  for(const [g,list] of Object.entries(rows)){ if(!list.length) continue;
+    out+=`<h2>${g} <span class="small muted">· ${list.length}</span></h2><table><tr><th style="width:22%">Initiative</th><th>What</th><th style="width:12%">Since</th><th style="width:12%">Owner</th><th style="width:13%">Last Tech Risk touch</th><th style="width:14%"></th></tr>
+    ${list.map(r=>`<tr><td><a href="#" onclick="go('initiative','${r.i.id}');return false">${esc(r.i.name)}</a></td><td><span class="pill ${r.sev}" style="padding:0 5px">&nbsp;</span> ${esc(r.what)}</td><td class="small">${r.since?fmt(r.since):'—'}</td><td class="small">${name(r.i.owner)}</td><td class="small">${lastTouch[r.i.id]?`${daysBetween(lastTouch[r.i.id],TODAY)}d ago`:'never'}</td><td>${r.act==='decide'?`<button class="primary sm" onclick="accept('${r.i.id}')">Accept</button> <button class="sm" onclick="toast('Demo: returned to owner with comments')">Return</button>`:r.open?`<a href="#" onclick="go('initiative','${r.i.id}','${r.open}');return false">Open →</a>`:`<a href="#" onclick="go('initiative','${r.i.id}');return false">Curate →</a>${r.remind?` <button class="sm" onclick="remindModal('${r.i.id}')">Copy reminder</button>`:''}`}</td></tr>`).join('')}</table>`; }
+  if(!out) out='<div class="card muted">Nothing needs attention.</div>';
+  if(quiet.length) out+=`<p class="small muted" style="margin-top:14px">No action: ${quiet.map(i=>`<a href="#" onclick="go('initiative','${i.id}');return false">${esc(i.name)}</a>`).join(', ')}</p>`;
+  return out;
+}
+function rSnapshots(){
+  const s=lastSnap(); const active=INITS.filter(i=>i.status==='active');
+  const ok=v=>v?'<span style="color:var(--green)">✓</span>':'<span style="color:var(--red)">✗</span>';
+  const check=active.map(i=>{const e=evaluate(i); const hl=i.overlays.filter(o=>o.t==='highlight'&&o.vis==='exec').length;
+    const c1=hl>=1&&hl<=3, c2=!s||(lastTouch[i.id]&&lastTouch[i.id]>s.at), c3=!e.override||(e.override.at>(s?s.at:0)), c4=!(e.stale!==null&&e.stale>THRESH.amber_stale&&!(lastTouch[i.id]&&lastTouch[i.id]>(i.updates[0]?.at||0)));
+    return `<tr><td><a href="#" onclick="go('initiative','${i.id}');return false">${esc(i.name)}</a></td><td>${ok(c1)} <span class="small muted">${hl} highlight${hl===1?'':'s'}</span></td><td>${ok(c2)} <span class="small muted">${lastTouch[i.id]?fmt(lastTouch[i.id]):'never'}</span></td><td>${e.override?ok(c3)+' <span class="small muted">set '+fmt(e.override.at)+'</span>':'<span class="muted small">no override</span>'}</td><td>${e.stale!==null&&e.stale>THRESH.amber_stale?ok(c4)+` <span class="small muted">${e.stale}d stale</span>`:'<span class="muted small">not stale</span>'}</td><td>${c1&&c2&&c3&&c4?'<span class="small" style="color:var(--green)">ready</span>':`<a href="#" class="small" onclick="go('initiative','${i.id}');return false">curate →</a>`}</td></tr>`;}).join('');
+  return `<div class="card"><h3 style="margin-top:0">Readiness</h3>
+    <table><tr><th>Initiative</th><th>Highlights set (1–3)</th><th>Curated since last snapshot</th><th>Override reviewed</th><th>Stale chased</th><th></th></tr>${check}</table>
+    <div class="row" style="margin-top:10px"><button class="sm" onclick="setRole('senior_management');snapshotId='live';go('exec')">Preview as Senior Management</button></div></div>
+    <div class="card"><h3 style="margin-top:0">Take snapshot</h3><form class="f row" onsubmit="takeSnapshot(event)"><input name="l" placeholder="Label, e.g. Nov 2026 leadership pack" required style="flex:1"><input name="n" placeholder="Note (optional)" style="flex:1"><button class="primary">Take snapshot</button></form></div>
+    <div class="card"><h3 style="margin-top:0">Past snapshots</h3><table><tr><th>Label</th><th>Taken</th><th>By</th><th>Note</th><th></th></tr>${SNAPSHOTS.map(x=>`<tr><td>${esc(x.label)}</td><td>${fmtDT(x.at)}</td><td>${name(x.by)}</td><td class="small">${esc(x.note||'')}</td><td><a href="#" class="small" onclick="snapshotId='${x.id}';go('exec');return false">view</a></td></tr>`).join('')}</table></div>`;
+}
+function rAdmin(){
+  return `<div class="card"><h3 style="margin-top:0">Control library</h3><div class="row"><button class="sm" onclick="toast('Demo: Excel upload dialog; template columns control_id, name, framework, control_owner, in_scope')">Upload Excel…</button><a href="#" class="small" onclick="toast('Demo: template download');return false">Download template</a></div>
+    <h3>Current library (${CONTROLS.length})</h3><table><tr><th>Control</th><th>Name</th><th>Framework</th><th>Control owner</th><th>TRAC guidance</th><th>Used by</th></tr>${CONTROLS.map(c=>`<tr><td><b>${c.id}</b></td><td class="small">${esc(c.name)}</td><td class="small">${c.fw}</td><td class="small">${c.owner}</td><td class="small"><a href="#" onclick="toast('Opens the TRAC guidance for ${c.id}');return false">${esc(TRAC_PATTERN[c.id]||'Link')}</a></td><td class="small">${INITS.filter(i=>i.status!=='proposed'&&i.controls.some(x=>x.c===c.id)).length} initiative(s)</td></tr>`).join('')}</table>
+    <h3>Upload log</h3><table><tr><th>Uploaded</th><th>By</th><th>File</th><th>Rows</th><th>Note</th></tr>${controlUploads.map(u=>`<tr><td>${fmtDT(u.at)}</td><td>${name(u.by)}</td><td>${u.file}</td><td>${u.rows}</td><td>${esc(u.note)}</td></tr>`).join('')}</table></div>
+    <div class="card"><h3 style="margin-top:0">RAG thresholds</h3><table><tr><th>Rule</th><th style="width:120px">Days</th></tr>${Object.keys(THRESH).map(k=>`<tr><td>${THRESH_LABELS[k]}</td><td><input type="number" value="${THRESH[k]}" style="width:80px" onchange="setThresh('${k}',this.value)"></td></tr>`).join('')}</table>
+    <h3>Change log</h3><table><tr><th>When</th><th>Who</th><th>Change</th></tr>${threshLog.slice().reverse().map(l=>`<tr><td class="small">${fmtDT(l.at)}</td><td>${name(l.by)}</td><td class="small">${esc(l.key)} ${l.from!==''?`<del>${l.from}</del> → <ins>${l.to}</ins>`:''}</td></tr>`).join('')}</table></div>
+    <div class="card"><h3 style="margin-top:0">Role management</h3><table><tr><th>Employee ID</th><th>Name</th><th>Role</th><th>Scope</th><th></th></tr>${Object.entries(PEOPLE).map(([id,p])=>`<tr><td>${id}</td><td>${p.name}</td><td>${p.role?p.role.replace('_',' '):'owner / delegate'}</td><td class="small">${p.role?'global':INITS.filter(i=>i.owner===id).map(i=>esc(i.name)).join(', ')||'—'}</td><td><button class="sm" onclick="toast('Demo: edit role')">Edit</button></td></tr>`).join('')}</table><div style="margin-top:8px"><button class="sm" onclick="toast('Demo: add role assignment')">Add role assignment</button></div></div>`;
+}
+function setVis(id,coll,k,v){const i=INITS.find(x=>x.id===id);touch(id);const item=i[coll][k];i.history.push({at:TODAY,by:role.emp,field:`${coll==='risks'?'risk':'overlay'} "${(item.title||item.text).slice(0,40)}" · visibility`,from:item.vis,to:v});item.vis=v;toast('Visibility changed and logged');render();}
+function addHl(ev,id){ev.preventDefault();const i=INITS.find(x=>x.id===id);touch(id);i.overlays.push({t:'highlight',text:new FormData(ev.target).get('t'),vis:'exec'});render();}
+function addNote(ev,id){ev.preventDefault();const f=new FormData(ev.target);const i=INITS.find(x=>x.id===id);touch(id);i.overlays.push({t:f.get('k'),text:f.get('t'),vis:f.get('k')==='internal_note'?'internal':'exec'});toast('Added');render();}
+function moveHl(id,k,dir){const i=INITS.find(x=>x.id===id);touch(id);const hls=i.overlays.filter(o=>o.t==='highlight');const j=k+dir;if(j<0||j>=hls.length)return;const a=i.overlays.indexOf(hls[k]),b=i.overlays.indexOf(hls[j]);[i.overlays[a],i.overlays[b]]=[i.overlays[b],i.overlays[a]];render();}
+function removeHl(id,k){const i=INITS.find(x=>x.id===id);touch(id);i.overlays.splice(k,1);render();}
+function setOverride(ev,id){ev.preventDefault();const f=new FormData(ev.target);const i=INITS.find(x=>x.id===id);touch(id);const dv=derive(i).derived;const v=f.get('v');if(ORD[dv]>ORD[v]){toast(`Allowed: overriding ${dv} to ${v}. It will auto-expire if derived worsens beyond ${dv}.`);} i.override={value:v,derivedAtSet:dv,reason:f.get('r'),support:f.get('s'),review:f.get('d')?d(f.get('d')):null,by:role.emp,at:TODAY};i.history.push({at:TODAY,by:role.emp,field:'RAG override',from:'—',to:`${v} (reason recorded)`});render();}
+function showOverride(id){const i=INITS.find(x=>x.id===id);const e=evaluate(i);const o=e.override;if(!o)return;const Cap=x=>x[0].toUpperCase()+x.slice(1);
+  const hist=i.history.filter(h=>/override/i.test(h.field)).sort((a,b)=>b.at-a.at);
+  document.getElementById('modal').innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal"><button class="close sm" onclick="closeModal()">Close</button><h2>RAG override — ${esc(i.name)}</h2>
+    <div class="kv"><dt>Derived by rules</dt><dd>${pill(e.derived)} <span class="small muted">${esc(e.rule)}</span></dd><dt>Overridden to</dt><dd>${pill(o.value)}</dd><dt>Set by</dt><dd>${name(o.by)}, ${fmt(o.at)}</dd><dt>Review by</dt><dd>${o.review?fmt(o.review)+(o.review<TODAY?' <span style="color:var(--red)">overdue</span>':''):'—'}</dd></div>
+    <h3>Reasoning</h3><div class="note">${esc(o.reason)}</div><h3>Supporting evidence</h3><div class="note">${esc(o.support||'—')}</div>
+    <p class="small muted">Auto-expires if the derived RAG worsens beyond ${Cap(o.derivedAtSet)}. Clearing or expiry is logged.</p>
+    ${hist.length?`<h3>Override history</h3><table>${hist.map(h=>`<tr><td class="small">${fmtDT(h.at)}</td><td>${name(h.by)}</td><td class="small"><del>${esc(h.from)}</del> → <ins>${esc(h.to)}</ins></td></tr>`).join('')}</table>`:''}
+    ${role.id==='tech_risk'?`<div style="margin-top:10px"><button class="sm" onclick="clearOverride('${i.id}');closeModal()">Clear override</button></div>`:''}</div></div>`;}
+function closeModal(){document.getElementById('modal').innerHTML='';}
+function clearOverride(id){const i=INITS.find(x=>x.id===id);touch(id);i.history.push({at:TODAY,by:role.emp,field:'RAG override',from:i.override.value,to:'cleared manually'});i.override=null;render();}
+function setThresh(k,v){v=parseInt(v,10);threshLog.push({at:TODAY,by:role.emp,key:THRESH_LABELS[k],from:THRESH[k],to:v});THRESH[k]=v;toast('Threshold changed and logged');render();}
+function accept(id){const i=INITS.find(x=>x.id===id);i.status='active';i.accepted=TODAY;i.baseline=i.goLive;i.phase=i.phases[0][0];i.history.push({at:TODAY,by:role.emp,field:'status',from:'proposed',to:'active'});toast('Accepted — baseline go-live fixed at '+fmt(i.goLive));render();}
+function takeSnapshot(ev){ev.preventDefault();const f=new FormData(ev.target);const rows={};const active=INITS.filter(i=>i.status==='active'||i.status==='closed');active.forEach(i=>{const e=evaluate(i);const nm=nextMilestone(i);rows[i.id]={rag:e.effective,phase:i.phase,goLive:i.goLive,next:nm?`${nm.n} · ${fmt(d(nm.f||nm.p))}`:'—',hl:i.overlays.filter(o=>o.t==='highlight'&&o.vis==='exec').slice(0,3).map(o=>o.text)};});const act=INITS.filter(i=>i.status==='active').map(evaluate);SNAPSHOTS.unshift({id:'s'+(SNAPSHOTS.length+1),label:f.get('l'),note:f.get('n'),at:TODAY,by:role.emp,rows,summary:{green:act.filter(e=>e.effective==='green').length,amber:act.filter(e=>e.effective==='amber').length,red:act.filter(e=>e.effective==='red').length,golive90:INITS.filter(i=>i.status==='active'&&i.goLive&&daysBetween(TODAY,i.goLive)<=90).length,highOpen:INITS.filter(i=>i.status==='active').reduce((n,i)=>n+i.risks.filter(r=>r.r==='H'&&r.st!=='closed').length,0),stale:act.filter(e=>e.stale>THRESH.amber_stale).length},thresholds:{...THRESH}});toast('Snapshot taken (immutable)');render();}
+
+function rIntake(){
+  return `<h1>Intake form</h1><form class="f card" onsubmit="submitIntake(event)" style="max-width:860px">
+  <div class="grid2"><div><label>Initiative name</label><input name="name" required></div><div><label>Sponsor</label><input name="sponsor" required></div></div>
+  <label>Description</label><textarea name="desc" rows="2"></textarea>
+  <div class="grid2"><div><label>Owner (employee ID)</label><input name="owner" value="${role.id==='owner'?role.emp:''}" required></div><div><label>Delegates (employee IDs, comma-separated)</label><input name="del"></div></div>
+  <label>Business driver</label><textarea name="driver" rows="2"></textarea>
+  <div class="grid2"><div><label>Target go-live</label><input type="date" name="golive" required></div><div><label>Expected systems / controls affected</label><input name="sys"></div></div>
+  <label>Phases with planned dates</label><table style="width:auto"><tr><th>Stage</th><th>Your phase name</th><th>Planned start</th><th>Planned end</th></tr>${STAGES.slice(1,6).map((st,k)=>`<tr><td><span class="swatch" style="background:${st.color}"></span>${st.n}</td><td><input name="ph${k}" value="${st.n}" style="width:180px"></td><td><input type="date" name="ps${k}"></td><td><input type="date" name="pe${k}"></td></tr>`).join('')}</table>
+  <label>Initial milestones</label><textarea name="ms" rows="2" placeholder="Design sign-off 2027-02-26 (key)"></textarea>
+  <label>Known risks</label><textarea name="risks" rows="2"></textarea>
+  <label>Why it matters to risk / controls</label><textarea name="why" rows="2" required></textarea>
+  <h3>About this initiative</h3><div class="small muted">Tick all that apply. Tech Risk sets the oversight level from your answers.</div>${SEV_Q.map(([k,l])=>`<label class="chk"><input type="checkbox" name="q_${k}"> ${l}</label>`).join('')}
+  <div style="margin-top:10px"><button class="primary">Submit to Tech Risk</button></div></form>`;
+}
+function submitIntake(ev){ev.preventDefault();const f=new FormData(ev.target);const g=f.get('golive');INITS.push({id:'n'+Date.now(),name:f.get('name'),owner:f.get('owner'),sponsor:f.get('sponsor'),status:'proposed',phase:'Intake',desc:f.get('desc'),why:f.get('why'),baseline:null,goLive:g?d(g):null,accepted:null,submitted:TODAY,phases:[['Plan',g||'2027-01-04',g||'2027-03-01',g||'2027-01-04',g||'2027-03-01']],milestones:[],risks:[],controls:[],overlays:[],updates:[],override:null,sev:newSev(f),delegates:parseDel(f.get('del')),history:[{at:TODAY,by:role.emp,field:'(intake submitted)',from:'',to:''}]});toast('Submitted to the Tech Risk queue');if(role.id==='tech_risk'){go('workbench');}else{render();}}
+
+
+function rLifecycle(){
+  const bar=`<div style="display:flex;gap:4px;margin:8px 0 16px">${STAGES.map((st,k)=>`<a href="#stage-${k}" style="flex:1;background:${st.color};color:#fff;padding:8px 6px;border-radius:4px;font-size:12px;text-align:center;text-decoration:none">${k}. ${st.n}</a>`).join('')}</div>`;
+  const mine=role.id==='owner'?INITS.find(i=>i.owner===role.emp):null; const mySev=mine?sevEff(mine):null;
+  return `<h1>Lifecycle &amp; guidance <span class="pill outline" title="Pending Head of Tech Risk approval">Draft</span></h1>
+  <p class="muted" style="margin:-4px 0 8px">Tech Risk sets each initiative's oversight level — Enhanced, Standard or Light — when it's accepted. The level sets what's needed to move to the next stage.${mine?` <b style="color:var(--ink)">${esc(mine.name)}: ${LVL[mySev]}.</b>`:''}</p>${bar}
+  ${STAGES.map((st,k)=>`<div class="card" id="stage-${k}" style="border-left:5px solid ${st.color}"><h2 style="margin-top:0">${k}. ${st.n}</h2>
+    <div class="kv"><dt>To move on</dt><dd>${k===0?'Tech Risk accepts the intake':SEVS.map(v=>`<span class="reqtag${mySev===v?' mine':''}" title="${REQ_TIP[GATE_MATRIX[v][k]]}"><b>${LVL[v]}</b> ${REQ_LABEL[GATE_MATRIX[v][k]]}</span>`).join('')}</dd><dt>Gate approver</dt><dd>${st.approver}</dd><dt>Checklist</dt><dd><ul style="margin:0;padding-left:18px">${st.check.map(c=>`<li>${c}</li>`).join('')}</ul></dd></div>
+    <div style="margin-top:8px"><a href="#" onclick="toast('Opens the stage page in TRAC');return false">Guidance in TRAC →</a>${role.id==='tech_risk'?` <button class="sm" style="margin-left:8px" onclick="toast('Edit stage name, approver, checklist and TRAC link')">Edit stage</button>`:''}</div></div>`).join('')}`;
+}
+function stagePanel(i, tr){
+  const cur=stageOf(i); const own=role.id==='owner'&&i.owner===role.emp&&i.status==='active'; const canTR=tr&&i.status!=='closed';
+  const rows=STAGES.map((st,k)=>{const inf=stageInfo(i,k); const g=inf.g; const checks=(CHECKS[i.id]||{})[k]||{};
+    const mts=MEETINGS.filter(m=>m.init===i.id&&m.stage===k).sort((a,b)=>b.at-a.at);
+    const btn=(fn,l,cls)=>`<button class="sm ${cls||''}" onclick="${fn}">${l}</button> `;
+    const items=st.check.map((c,j)=>{const s=itemStatus(i.id,k,j); const ck=checks[j]||{}; let mark='·',det='',act='';
+      const at=`'${i.id}',${k},${j}`;
+      if(s==='accepted'){mark='✓';det=`${name(ck.by)}, ${fmt(ck.at)} · ${BASIS[ck.basis]||''} · ${evLink(ck.ev)}`;if(canTR)act+=btn(`resetItem(${at})`,'Undo');}
+      else if(s==='na'){mark='–';det=`N/A · ${esc(ck.reason)}`;if(canTR)act+=btn(`resetItem(${at})`,'Undo');}
+      else if(s==='submitted'){mark='<span class="pill blue">Submitted</span>';det=`${name(ck.sBy)}, ${fmt(ck.sAt)} · ${evLink(ck.ev)}${ck.note?` · ${esc(ck.note)}`:''}`;
+        if(canTR)act+=btn(`acceptItem(${at})`,'Accept','primary')+btn(`openConfirm(${at},true)`,'Accept as…')+btn(`sendBackItem(${at})`,'Send back');}
+      else{ if(s==='sent_back'){mark='<span class="pill amber">Sent back</span>';det=`<span style="color:#7d4e00">${name(ck.backBy)}: ${esc(ck.comment)}</span>`;}
+        if(k===0){if(canTR)act+=btn(`openConfirm(${at},false)`,'Confirm','primary');}
+        else{ if(own)act+=inf.req==='A'?btn(`attestItem(${at})`,'Confirm','primary'):btn(`evidenceModal(${at})`,'Submit evidence','primary'); if(canTR)act+=btn(`naModal(${at})`,'Mark N/A'); } }
+      return `<tr><td style="width:90px">${mark}</td><td>${c}</td><td class="small muted">${det}</td><td style="white-space:nowrap">${act}</td></tr>`;}).join('');
+    const gateRow=(inf.gate||g)?`<div class="small" style="margin:6px 0 2px 18px"><b>Gate review</b>: ${g?`${decPill(g)} ${esc(g.approver)}, ${fmt(g.at)} · ${evLink(g.ev)}${g.conditions?` · Conditions: ${esc(g.conditions)}`:''} <span class="muted">· recorded by ${name(g.by)} ${fmt(g.recordedAt)}</span>`:`<span class="muted">${inf.itemsOk?'Ready for review':'Waiting for items'}</span>`}${canTR&&inf.itemsOk&&(!g||g.decision==='hold')?` <button class="sm primary" onclick="recordGate('${i.id}',${k})">Record gate review</button>`:''}</div>`:'';
+    return `<details ${k===cur?'open':''} style="margin:4px 0"><summary style="cursor:pointer"><span class="swatch" style="background:${st.color}"></span><b>${k}. ${st.n}</b> ${reqTag(i,k)} <span class="small muted">${inf.done}/${inf.total} complete${k===cur?' · current stage':''}${mts.length?` · ${mts.length} meeting${mts.length>1?'s':''}`:''}</span> ${decPill(g)}${k<cur&&!inf.complete?' <span class="small" style="color:var(--amber)">incomplete</span>':''}</summary>
+      <table style="margin:4px 0 0 18px;width:auto">${items}</table>
+      ${gateRow}
+      ${mts.length?`<div class="small" style="margin:6px 0 0 18px">${mts.map(m=>`${fmt(m.at)} · <a href="#" onclick="initTab='meetings';render();return false">${esc(m.what)}</a>`).join('<br>')}</div>`:''}
+      <div class="small" style="margin:4px 0 0 18px"><a href="#" onclick="toast('Opens the stage page in TRAC');return false">Guidance in TRAC →</a></div></details>`;}).join('');
+  return `<div class="card"><h3 style="margin-top:0">Stage checklist <span class="small muted">· current: ${STAGES[cur].n}</span></h3>${rows}</div>`;
+}
+
+
+function rAudit(){
+  const snaps=`<div class="card"><h3 style="margin-top:0">Point in time</h3><div class="row"><div><label class="small muted">Snapshot — "what was presented"</label><br><select onchange="snapshotId=this.value;asOf=null;go('exec')"><option value="live">Live</option>${SNAPSHOTS.map(s=>`<option value="${s.id}">${esc(s.label)} · ${fmt(s.at)}</option>`).join('')}</select></div><div><label class="small muted">As-of date — "what the system held"</label><br><input type="date" value="2026-10-15" onchange="asOf=new Date(this.value+'T12:00:00-05:00');go('exec')"></div></div></div>`;
+  return `<h1>Audit</h1>${snaps}`;
+}
+
+// hash routing + boot
+const start=location.hash.replace('#','');
+if(['exec','workbench','intake','audit','owner','lifecycle'].includes(start)) view=start;
+render();
+</script>
+</body>
+</html>

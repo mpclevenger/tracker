@@ -1,0 +1,28 @@
+{% load ui %}
+<div class="modal-bg"><div class="modal-box">
+  <div class="d-flex justify-content-between"><h2 class="h5">RAG override — {{ initiative.name }}</h2>
+    <button type="button" class="btn btn-sm btn-outline-secondary" hx-get="{% url 'close_modal' %}" hx-target="#modal" hx-swap="innerHTML">Close</button></div>
+  {% if ov %}
+  <dl class="kv">
+    <dt>Derived by rules</dt><dd>{% rag_pill ev.derived %} <span class="small muted">{{ ev.rule }}</span></dd>
+    <dt>Overridden to</dt><dd>{% rag_pill ov.value %}</dd>
+    <dt>Set by</dt><dd>{{ ov.author_emp_id|person }}, {{ ov.effective_from|short_date }}</dd>
+    <dt>Review by</dt><dd>{{ ov.review_by|short_date }}{% if overdue %} <span style="color:var(--red)">overdue</span>{% endif %}</dd>
+  </dl>
+  <h3 class="h6">Reasoning</h3><div class="note">{{ ov.reason }}</div>
+  <h3 class="h6">Supporting evidence</h3><div class="note">{{ ov.support|default:"—" }}</div>
+  <p class="small muted">Auto-expires if the derived RAG worsens beyond {{ ov.derived_at_set|cap }}. Clearing or expiry is logged.</p>
+  {% else %}
+  <p class="muted">No active override. Derived RAG: {% rag_pill ev.derived %}</p>
+  {% endif %}
+  <h3 class="h6">Override history</h3>
+  <table class="table table-sm"><thead><tr><th>Value</th><th>Set by</th><th>Effective from</th><th>Cleared</th><th>Cleared by</th></tr></thead><tbody>
+    {% for h in history %}
+    <tr><td>{% rag_pill h.value %}</td><td>{{ h.set_by|person }}</td><td class="small">{{ h.effective_from|short_date }}</td>
+      <td class="small">{{ h.cleared_at|short_date }}</td><td class="small">{{ h.get_cleared_by_display|default:"—" }}</td></tr>
+    {% empty %}<tr><td colspan="5" class="muted">No overrides recorded.</td></tr>{% endfor %}
+  </tbody></table>
+  {% if ov and actor.is_tech_risk %}
+  <div class="mt-3"><button type="button" class="btn btn-sm btn-outline-secondary" hx-post="{% url 'override_clear' eid %}" hx-swap="none">Clear override</button></div>
+  {% endif %}
+</div></div>

@@ -1,0 +1,6 @@
+<h1>Tech Risk workbench</h1>
+<div class="tabs">
+  <a href="{% url 'workbench' %}" class="{% if wb_tab == 'triage' %}on{% endif %}">Triage · {{ wb_count }}</a>
+  <a href="{% url 'workbench_snapshots' %}" class="{% if wb_tab == 'snapshots' %}on{% endif %}">Snapshots</a>
+  <a href="{% url 'workbench_admin' %}" class="{% if wb_tab == 'admin' %}on{% endif %}">Admin</a>
+</div>

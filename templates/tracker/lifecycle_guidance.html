@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Lifecycle &amp; guidance · IT Initiative Risk Tracker{% endblock %}
+{% block content %}
+<h1>Lifecycle &amp; guidance {% if is_draft %}<span class="pill outline" title="Pending Head of Tech Risk approval">Draft</span>{% endif %}</h1>
+{% if not is_draft %}<p class="small muted mb-1">Approved by {{ gate_settings.approved_by }} on {{ gate_settings.approved_on|short_date }} · {{ gate_version }}</p>{% endif %}
+<p class="muted">Tech Risk sets each initiative's oversight level — Enhanced, Standard or Light — when it's accepted. The level sets what's needed to move to the next stage.
+  {% for i in mine %}<b class="text-body">{{ i.name }}: {{ i.oversight_label }}.</b> {% endfor %}</p>
+<p class="small muted">Enhanced: Tier 0/1 app, SOX plus one more yes, key controls plus regulated data, or three yes. Standard: any yes. Light: none.</p>
+<div class="stage-bar">
+  {% for s in stages %}<a href="#stage-{{ s.stage.number }}" style="background:{{ s.stage.color }}">{{ s.stage.number }}. {{ s.stage.name }}</a>{% endfor %}
+</div>
+{% for s in stages %}{% with st=s.stage page=s.page %}
+<div class="card" id="stage-{{ st.number }}" style="border-left:5px solid {{ st.color }}"><div class="card-body">
+  <h2 class="mt-0">{{ st.number }}. {{ st.name }}</h2>
+  {% if page %}
+  <dl class="kv">
+    <dt>To move on</dt>
+    <dd>{% if st.number == 0 %}{{ intake_tip }}{% else %}{% for m in s.moves %}<span class="reqtag{% if m.mine %} mine{% endif %}" title="{{ m.tip }}"><b>{{ m.label }}</b> {{ m.req_label }}</span>{% endfor %}{% endif %}</dd>
+    <dt>Approver</dt><dd>{{ page.approver }}</dd>
+    <dt>Checklist</dt><dd><ul class="mb-0">{% for c in page.checklist %}<li>{{ c }}</li>{% endfor %}</ul></dd>
+  </dl>
+  {% if page.trac_url %}<a href="{{ page.trac_url }}" target="_blank" rel="noopener">Guidance in TRAC →</a>{% else %}<span class="muted small">TRAC page not linked yet</span>{% endif %}
+  {% if actor.is_tech_risk %}<a class="btn btn-sm btn-outline-secondary ms-2" href="{% url 'edit_guidance' st.number %}">Edit stage</a>{% endif %}
+  {% else %}<p class="muted mb-0">No guidance recorded for this stage.</p>{% endif %}
+</div></div>
+{% endwith %}{% endfor %}
+{% endblock %}

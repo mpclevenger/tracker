@@ -1,0 +1,69 @@
+{% load static ui %}<!doctype html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}IT Initiative Risk Tracker{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'css/exec.css' %}">
+  <link rel="stylesheet" href="{% static 'css/initiative.css' %}">
+  <link rel="stylesheet" href="{% static 'css/lifecycle.css' %}">
+  <link rel="stylesheet" href="{% static 'css/workbench.css' %}">
+</head>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+<nav class="navbar navbar-expand-lg navbar-dark app-nav">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-semibold" href="{% url 'home' %}">IT Initiative Risk Tracker</a>
+    <ul class="navbar-nav me-auto">
+      {% if actor.sees_exec_pages %}
+      <li class="nav-item"><a class="nav-link {% if nav == 'exec' %}active{% endif %}" href="{% url 'exec_summary' %}">Exec summary</a></li>
+      {% endif %}
+      {% if actor.is_any_owner and modules.owner_access %}
+      <li class="nav-item"><a class="nav-link {% if nav == 'my' %}active{% endif %}" href="{% url 'my_initiative' %}">My initiative</a></li>
+      {% endif %}
+      {% if actor.is_tech_risk %}
+      <li class="nav-item"><a class="nav-link {% if nav == 'workbench' %}active{% endif %}" href="{% url 'workbench' %}">Workbench</a></li>
+      {% endif %}
+      {% if actor.is_tech_risk or actor.is_any_owner %}
+      <li class="nav-item"><a class="nav-link {% if nav == 'intake' %}active{% endif %}" href="{% url 'intake' %}">Intake form</a></li>
+      {% endif %}
+      {% if modules.audit and actor.is_tech_risk or modules.audit and actor.is_auditor %}
+      <li class="nav-item"><a class="nav-link {% if nav == 'audit' %}active{% endif %}" href="{% url 'audit' %}">Audit</a></li>
+      {% endif %}
+      {% if modules.meetings and actor.is_tech_risk or modules.meetings and actor.is_auditor %}
+      <li class="nav-item"><a class="nav-link {% if nav == 'meetings' %}active{% endif %}" href="{% url 'meetings:list' %}">Meetings</a></li>
+      {% endif %}
+      {% if actor.is_authenticated %}
+      <li class="nav-item"><a class="nav-link {% if nav == 'lifecycle' %}active{% endif %}" href="{% url 'lifecycle' %}">Lifecycle &amp; guidance</a></li>
+      {% endif %}
+    </ul>
+    <span class="navbar-text small text-light">
+      {% if actor.is_authenticated %}
+        {{ actor.display_name }}
+        <span class="opacity-75">· {% for r in actor.roles %}{{ r|role_label }}{% if not forloop.last %}, {% endif %}{% empty %}{% if actor.is_any_owner %}Owner{% else %}No role{% endif %}{% endfor %}</span>
+      {% else %}
+        Not signed in
+      {% endif %}
+      {% if AUTH_MODE == "dev" %}
+        · <a class="link-light" href="{% url 'switch_user' %}?next={{ request.path|urlencode }}">Switch user</a>
+      {% endif %}
+    </span>
+  </div>
+</nav>
+
+{% block banner %}{% if AUTH_MODE == "open" %}<div class="banner" title="Test environment only">Open mode: all users have Tech Risk access</div>{% endif %}{% endblock %}
+{% if modules_off and actor.is_tech_risk %}<div class="banner warn-banner" title="Change in Workbench, Admin">Off: {{ modules_off|join:", " }}</div>{% endif %}
+
+<main class="container-fluid py-3 app-main">
+  {% if messages %}
+    {% for m in messages %}
+      <div class="alert alert-{{ m.tags|default:'info' }} py-2">{{ m }}</div>
+    {% endfor %}
+  {% endif %}
+  {% block content %}{% endblock %}
+</main>
+<div id="modal"></div>
+<script src="{% static 'vendor/htmx.min.js' %}" defer></script>
+</body>
+</html>

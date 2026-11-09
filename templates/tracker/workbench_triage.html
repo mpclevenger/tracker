@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Workbench · IT Initiative Risk Tracker{% endblock %}
+{% block content %}
+{% include "tracker/partials/wb_tabs.html" %}
+{% for group, rows in groups %}
+<h2 class="sect">{{ group|group_label }} <span class="small muted">· {{ rows|length }}</span></h2>
+<table class="table table-sm align-middle">
+  <thead><tr><th style="width:22%">Initiative</th><th>What</th><th style="width:12%">Since</th><th style="width:12%">Owner</th><th style="width:13%">Last Tech Risk touch</th><th style="width:20%"></th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+  {% with init=r.bundle.initiative %}
+  <tr>
+    <td><a href="{% url 'initiative' init.entity_id %}">{{ init.name }}</a></td>
+    <td><span class="pill {{ r.severity }}" style="padding:0 5px">&nbsp;</span> {{ r.what }}</td>
+    <td class="small">{% if r.since %}{{ r.since|date:"M j, Y" }}{% else %}—{% endif %}</td>
+    <td class="small">{{ init.owner_emp_id|person }}</td>
+    <td class="small">{% if r.bundle.last_curated %}{{ r.bundle.last_curated|days_ago }}{% else %}never{% endif %}</td>
+    <td>
+      {% if r.action == "decide" %}
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <form method="post" action="{% url 'intake_accept' init.entity_id %}" class="m-0">{% csrf_token %}
+          <input type="hidden" name="next" value="{% url 'workbench' %}">
+          <button type="submit" class="btn btn-sm btn-primary">Accept</button>
+        </form>
+        <form method="post" action="{% url 'intake_return' init.entity_id %}" class="m-0 d-flex gap-1">{% csrf_token %}
+          <input type="hidden" name="next" value="{% url 'workbench' %}">
+          <input type="text" name="comments" class="form-control form-control-sm" placeholder="Comments to owner" required style="width:170px">
+          <button type="submit" class="btn btn-sm btn-outline-secondary">Return</button>
+        </form>
+      </div>
+      {% elif r.action == "review" %}
+      <a href="{% url 'initiative' init.entity_id %}?tab={{ r.tab }}">Open →</a>
+      {% elif r.action == "remind" %}
+      <button type="button" class="btn btn-sm btn-outline-secondary" hx-get="{% url 'reminder_modal' init.entity_id %}" hx-target="#modal" hx-swap="innerHTML">Copy reminder</button>
+      {% else %}
+      <a href="{% url 'initiative' init.entity_id %}?tab={{ r.tab }}">Open →</a>
+      {% endif %}
+    </td>
+  </tr>
+  {% endwith %}
+  {% endfor %}
+  </tbody>
+</table>
+{% empty %}
+<div class="card muted"><div class="card-body">Nothing needs attention.</div></div>
+{% endfor %}
+{% if quiet %}<p class="small muted" style="margin-top:14px">No action needed: {% for b in quiet %}<a href="{% url 'initiative' b.initiative.entity_id %}">{{ b.initiative.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}.</p>{% endif %}
+{% endblock %}

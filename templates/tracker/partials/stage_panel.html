@@ -1,0 +1,45 @@
+{% load ui %}
+<div class="card stage-panel"><div class="card-body">
+  {% for row in stage_rows %}
+  <details {% if row.expanded %}open{% endif %} id="stage-panel-{{ row.number }}">
+    <summary><span class="swatch" style="background:{{ row.color }}"></span><b>{{ row.number }}. {{ row.name }}</b>
+      <span class="tag" title="{{ row.req_tip }}">{{ row.req_label }}</span>
+      <span class="small muted">{{ row.done }} of {{ row.total }} done</span>
+      {% if row.gate %}<span class="pill {{ row.gate_color }}">{{ row.gate.get_decision_display }}</span>{% endif %}
+      {% if row.meetings %}<span class="small muted">· {{ row.meetings|length }} meeting{{ row.meetings|length|pluralize }}</span>{% endif %}</summary>
+    <div class="stage-body">
+      <table class="table table-sm w-auto mb-1"><tbody>
+        {% for it in row.items %}
+        <tr class="item-row">
+          <td><span class="pill {{ it.pill_color }}">{{ it.pill_label }}</span></td>
+          <td>{{ it.text }}{% if row.trac_url %} <a href="{{ row.trac_url }}" target="_blank" rel="noopener" title="Guidance in TRAC">Guidance</a>{% endif %}</td>
+          <td class="small muted">
+            {% if it.check %}
+              {% if it.state == "na" %}N/A · {{ it.check.comment }}
+              {% elif it.state == "sent_back" %}<span class="sent-back">{{ it.check.comment }}</span>
+              {% else %}{{ it.check.author_emp_id|person }}, {{ it.check.valid_from|short_date }}{% if it.check.basis %} · {{ it.check.get_basis_display }}{% endif %}{% if it.check.evidence_ref %} · {% if it.evidence_url %}<a href="{{ it.check.evidence_ref }}" target="_blank" rel="noopener">evidence</a>{% else %}{{ it.check.evidence_ref }}{% endif %}{% endif %}{% if it.check.note %} · {{ it.check.note }}{% endif %}
+              {% endif %}
+            {% endif %}
+          </td>
+          <td class="item-actions">
+            {% for action, label in it.actions %}
+              {% if action == "reopen" %}<form class="d-inline" method="post" action="{% url 'stage_item' eid row.number it.index action %}" hx-post="{% url 'stage_item' eid row.number it.index action %}" hx-swap="none">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary py-0">{{ label }}</button></form>
+              {% else %}<button type="button" class="btn btn-sm {% if forloop.first %}btn-primary{% else %}btn-outline-secondary{% endif %} py-0" hx-get="{% url 'stage_item' eid row.number it.index action %}" hx-target="#modal" hx-swap="innerHTML">{{ label }}</button>{% endif %}
+            {% endfor %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody></table>
+      {% if row.gate or row.can_record %}
+      <div class="small my-1"><b>Sign-off</b>
+        {% if row.gate %}<span class="pill {{ row.gate_color }}">{{ row.gate.get_decision_display }}</span> {{ row.gate.approver }}, {{ row.gate.approved_on|short_date }} · {% if row.gate_url %}<a href="{{ row.gate.evidence_ref }}" target="_blank" rel="noopener">evidence</a>{% else %}{{ row.gate.evidence_ref }}{% endif %}{% if row.gate.conditions %} · Conditions: {{ row.gate.conditions }}{% endif %}{% endif %}
+        {% if row.can_record %}<button type="button" class="btn btn-sm btn-primary py-0" hx-get="{% url 'stage_gate' eid row.number %}" hx-target="#modal" hx-swap="innerHTML">Record sign-off</button>{% endif %}
+      </div>
+      {% endif %}
+      {% if row.meetings %}
+      <div class="small">{% for m in row.meetings %}{{ m.held_on|short_date }} · <a href="?tab=meetings">{{ m.what }}</a>{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>
+      {% endif %}
+    </div>
+  </details>
+  {% endfor %}
+</div></div>

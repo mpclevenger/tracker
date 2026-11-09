@@ -1,0 +1,16 @@
+<div class="modal-bg"><div class="modal-box">
+  <div class="d-flex justify-content-between"><h2 class="h5">Owner and delegates — {{ initiative.name }}</h2>
+    <button type="button" class="btn btn-sm btn-outline-secondary" hx-get="{% url 'close_modal' %}" hx-target="#modal" hx-swap="innerHTML">Close</button></div>
+  <form hx-post="{% url 'edit_people' eid %}" hx-target="#modal" hx-swap="innerHTML">
+    <label class="form-label mb-0" for="pp-owner">Owner</label>
+    <select id="pp-owner" name="owner" class="form-select form-select-sm">
+      {% for p in people %}<option value="{{ p.emp_id }}" {% if p.emp_id == initiative.owner_emp_id %}selected{% endif %}>{{ p.display_name }}</option>{% endfor %}
+    </select>
+    <label class="form-label mb-0 mt-2" for="pp-delegates">Delegates</label>
+    <select id="pp-delegates" name="delegates" multiple size="8" class="form-select form-select-sm">
+      {% for p in people %}<option value="{{ p.emp_id }}" {% if p.emp_id in delegates %}selected{% endif %}>{{ p.display_name }}</option>{% endfor %}
+    </select>
+    {% if error %}<div class="text-danger small mt-1">{{ error }}</div>{% endif %}
+    <button class="btn btn-primary btn-sm mt-3">Save</button>
+  </form>
+</div></div>

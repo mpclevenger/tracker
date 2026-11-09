@@ -1,0 +1,10 @@
+<div class="modal-bg"><div class="modal-box">
+  <div class="d-flex justify-content-between"><h2 class="h5">TRAC guidance — {{ control.control_id }}</h2>
+    <button type="button" class="btn btn-sm btn-outline-secondary" hx-get="{% url 'close_modal' %}" hx-target="#modal" hx-swap="innerHTML">Close</button></div>
+  <form method="post" action="{% url 'control_trac_link' control.entity_id %}" hx-post="{% url 'control_trac_link' control.entity_id %}" hx-target="#modal" hx-swap="innerHTML">{% csrf_token %}
+    <label class="form-label small muted mb-1" for="trac-url">Link to the TRAC page</label>
+    <input id="trac-url" type="url" name="trac_url" class="form-control form-control-sm" value="{{ control.trac_url }}" placeholder="https://…">
+    {% if error %}<div class="text-danger small">{{ error }}</div>{% endif %}
+    <button type="submit" class="btn btn-sm btn-primary mt-2">Save</button>
+  </form>
+</div></div>

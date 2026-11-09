@@ -1,0 +1,19 @@
+<div class="modal-bg"><div class="modal-box">
+  <div class="d-flex justify-content-between"><h2 class="h5">Oversight level — {{ initiative.name }}</h2>
+    <button type="button" class="btn btn-sm btn-outline-secondary" hx-get="{% url 'close_modal' %}" hx-target="#modal" hx-swap="innerHTML">Close</button></div>
+  <form hx-post="{% url 'oversight_modal' eid %}" hx-target="#modal" hx-swap="innerHTML">
+    {% for key, label, checked in questions %}
+    <div class="form-check"><input class="form-check-input" type="checkbox" id="q_{{ key }}" name="q_{{ key }}" {% if checked %}checked{% endif %}><label class="form-check-label" for="q_{{ key }}">{{ label }}</label></div>
+    {% endfor %}
+    <div class="my-2">From answers: <b>{{ derived_label }}</b></div>
+    <label class="form-label mb-0" for="ov-level">Override</label>
+    <select id="ov-level" name="override" class="form-select form-select-sm w-auto">
+      <option value="">None</option>
+      {% for value, label in levels %}<option value="{{ value }}" {% if override == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <label class="form-label mb-0 mt-2" for="ov-reason">Reason (required with an override)</label>
+    <textarea id="ov-reason" name="reason" rows="2" class="form-control form-control-sm">{{ reason }}</textarea>
+    {% if error %}<div class="text-danger small mt-1">{{ error }}</div>{% endif %}
+    <button class="btn btn-primary btn-sm mt-3">Save</button>
+  </form>
+</div></div>

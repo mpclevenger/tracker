@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Close follow-up · IT Initiative Risk Tracker{% endblock %}
+{% block content %}
+<h1>Close follow-up</h1>
+<div class="card"><div class="card-body">
+  <p class="mb-1">{{ followup.text }}</p>
+  <p class="small muted">{% if meeting %}From the meeting on {{ meeting.held_on|short_date }} · {{ meeting.what }}. {% endif %}Owner: {{ followup.owner|default:"—" }} · Due: {{ followup.due_date|short_date }}</p>
+  <form method="post">{% csrf_token %}
+    <div class="mb-2">
+      <label class="form-label mb-0" for="{{ form.closed_on.id_for_label }}">Closed on</label>
+      {{ form.closed_on }}{% for e in form.closed_on.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    </div>
+    <div class="mb-2">
+      <label class="form-label mb-0" for="{{ form.closure_note.id_for_label }}">Closure note <span class="text-danger">*</span></label>
+      {{ form.closure_note }}{% for e in form.closure_note.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    </div>
+    <button class="btn btn-primary btn-sm">Mark done</button>
+    <a class="btn btn-link btn-sm" href="{% url 'meetings:list' %}">Cancel</a>
+  </form>
+</div></div>
+{% endblock %}

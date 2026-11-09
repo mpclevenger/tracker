@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Snapshot record · IT Initiative Risk Tracker{% endblock %}
+{% block content %}
+<h1>Snapshot record: {{ snap.label }}</h1>
+{% with h=snap.frozen_summary %}
+<p class="small muted">Taken {{ snap.taken_at|short_date }} {{ snap.taken_at|time:"H:i" }} by {{ snap.taken_by|person }}
+  · Guidance {{ h.guidance_version|default:"not recorded" }} · Gate requirements {{ h.gate_matrix_version|default:"not recorded" }}
+  · <a href="{% url 'exec_summary' %}?snapshot={{ snap.pk }}">View as presented</a></p>
+{% endwith %}
+{% for r in rows %}
+<div class="card mb-3"><div class="card-body">
+  <h2 class="h6 mb-1">{{ r.name }} {% rag_pill r.effective %}{% if r.override %} <span class="small muted">override of {{ r.derived|cap }}</span>{% endif %}</h2>
+  <p class="small muted mb-2">Owner {{ r.owner_emp_id|person }} · Oversight {{ levels|get:r.oversight|default:"not recorded" }}{% if r.oversight_overridden %} (set by Tech Risk){% endif %}{% if r.chip %} · {{ r.chip }}{% endif %}</p>
+  {% if r.stages %}
+  <table class="table table-sm small mb-2">
+    <thead><tr><th>Stage</th><th>Requirement</th><th>Items done</th><th>Sign-off</th></tr></thead>
+    <tbody>{% for st in r.stages %}<tr{% if st.is_current %} class="fw-semibold"{% endif %}>
+      <td>{{ st.number }}. {{ st.name }}</td>
+      <td>{{ req_labels|get:st.requirement|default:"Intake acceptance" }}</td>
+      <td>{{ st.done }} of {{ st.total }}</td>
+      <td>{% if st.signoff %}{{ decisions|get:st.signoff.decision }} · {{ st.signoff.approver }} · {{ st.signoff.on|short_date }}{% if st.signoff.conditions %} · {{ st.signoff.conditions }}{% endif %}{% else %}—{% endif %}</td>
+    </tr>{% endfor %}</tbody>
+  </table>
+  {% endif %}
+  {% if r.controls %}<p class="small mb-0"><b>Controls:</b> {% for c in r.controls %}{{ c.control_id }} {{ readiness|get:c.readiness }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% endif %}
+  {% if not r.stages %}<p class="small muted mb-0">Stage and control detail not recorded in this snapshot.</p>{% endif %}
+</div></div>
+{% empty %}
+<p class="muted">This snapshot has no initiatives.</p>
+{% endfor %}
+{% endblock %}

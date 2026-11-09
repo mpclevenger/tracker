@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Admin · Workbench · IT Initiative Risk Tracker{% endblock %}
+{% block content %}
+{% include "tracker/partials/wb_tabs.html" %}
+
+<div class="card"><div class="card-body">
+  <h2 class="h6">Control library</h2>
+  <form method="post" action="{% url 'upload_controls' %}" enctype="multipart/form-data" class="d-flex gap-2 align-items-center flex-wrap">{% csrf_token %}
+    <input type="file" name="file" accept=".xlsx" class="form-control form-control-sm w-auto" required>
+    <input type="text" name="note" class="form-control form-control-sm w-auto" placeholder="Note (optional)" style="min-width:220px">
+    <button type="submit" class="btn btn-sm btn-outline-secondary">Upload Excel</button>
+    <a href="{% url 'control_template' %}" class="small">Download template</a>
+  </form>
+  <h3 class="h6 mt-3">Current library ({{ controls|length }})</h3>
+  <table class="table table-sm">
+    <thead><tr><th>Control</th><th>Name</th><th>Framework</th><th>Control owner</th><th>In scope</th><th>TRAC guidance</th><th>Used by</th></tr></thead>
+    <tbody>
+    {% for row in controls %}
+    <tr><td><b>{{ row.c.control_id }}</b></td><td class="small">{{ row.c.name }}</td><td class="small">{{ row.c.framework }}</td><td class="small">{{ row.c.control_owner }}</td><td class="small">{{ row.c.in_scope|yesno:"Yes,No" }}</td>
+      <td class="small">{% if row.c.trac_url %}<a href="{{ row.c.trac_url }}" target="_blank" rel="noopener">Open</a> · {% endif %}<a href="#" class="{% if not row.c.trac_url %}muted{% endif %}" hx-get="{% url 'control_trac_link' row.c.entity_id %}" hx-target="#modal" hx-swap="innerHTML">{% if row.c.trac_url %}Edit{% else %}Add link{% endif %}</a></td>
+      <td class="small">{{ row.used }} initiative{{ row.used|pluralize }}</td></tr>
+    {% empty %}<tr><td colspan="7" class="muted">No controls loaded.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  <h3 class="h6">Upload log</h3>
+  <table class="table table-sm">
+    <thead><tr><th>Uploaded</th><th>By</th><th>File</th><th>Rows</th><th>Note</th></tr></thead>
+    <tbody>
+    {% for u in uploads %}
+    <tr><td class="small">{{ u.uploaded_at|date:"M j, Y H:i" }}</td><td>{{ u.uploaded_by|person }}</td><td>{{ u.filename }}</td><td>{{ u.row_count }}</td><td class="small">{{ u.note }}</td></tr>
+    {% empty %}<tr><td colspan="5" class="muted">No uploads yet.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div></div>
+
+<div class="card"><div class="card-body">
+  <h2 class="h6">RAG thresholds</h2>
+  <form method="post" action="{% url 'set_threshold' %}">{% csrf_token %}
+    <table class="table table-sm align-middle">
+      <thead><tr><th>Rule</th><th style="width:120px">Days</th><th style="width:100px">Default</th></tr></thead>
+      <tbody>
+      {% for t in thresholds %}
+      <tr><td>{{ t.label }}</td><td><input type="number" min="0" name="{{ t.key }}" value="{{ t.value }}" class="form-control form-control-sm" style="width:90px"></td><td class="small muted">{{ t.default }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <button type="submit" class="btn btn-sm btn-primary">Save thresholds</button>
+  </form>
+  <h3 class="h6 mt-3">Change log</h3>
+  <table class="table table-sm">
+    <thead><tr><th>When</th><th>Who</th><th>Change</th></tr></thead>
+    <tbody>
+    {% for l in threshold_log %}
+    <tr><td class="small">{{ l.row.valid_from|date:"M j, Y H:i" }}</td><td>{{ l.row.author_emp_id|person }}</td>
+      <td class="small diff">{{ l.label }} <del>{{ l.old }}</del> → <ins>{{ l.row.value }}</ins></td></tr>
+    {% empty %}<tr><td colspan="3" class="muted">No changes yet; defaults are in force.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div></div>
+
+<div class="card"><div class="card-body">
+  <h2 class="h6">Gate requirements</h2>
+  <p class="small muted mb-2">Current: {{ gate_version }} · {% if gate_is_draft %}<span class="pill outline" title="Pending Head of Tech Risk approval">Draft</span>{% else %}Approved by {{ gate_settings.approved_by }} on {{ gate_settings.approved_on|short_date }}{% endif %}</p>
+  <form method="post" action="{% url 'set_gate_settings' %}">{% csrf_token %}
+    <table class="table table-sm align-middle">
+      <thead><tr><th>Level</th>{% for st in gate_stages %}<th class="small">{{ st.number }}. {{ st.name }}</th>{% endfor %}</tr></thead>
+      <tbody>
+      {% for row in gate_rows %}
+      <tr><td><b>{{ row.label }}</b></td>
+        {% for name, value in row.cells %}<td><select name="{{ name }}" class="form-select form-select-sm" aria-label="{{ row.label }} stage {{ forloop.counter }}">
+          {% for code, label in requirement_choices %}<option value="{{ code }}"{% if code == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select></td>{% endfor %}</tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <h3 class="h6">Oversight questions</h3>
+    {% for name, label in gate_questions %}
+    <input type="text" name="{{ name }}" value="{{ label }}" maxlength="200" class="form-control form-control-sm mb-1" aria-label="Question {{ forloop.counter }}" required>
+    {% endfor %}
+    <div class="d-flex gap-2 align-items-end flex-wrap mt-2">
+      <div><label class="form-label small mb-0" for="gs-version">Version</label>
+        <input id="gs-version" name="version_label" maxlength="20" class="form-control form-control-sm" style="width:110px" required></div>
+      <div class="flex-grow-1"><label class="form-label small mb-0" for="gs-note">Change note</label>
+        <input id="gs-note" name="change_note" maxlength="300" class="form-control form-control-sm" required></div>
+      <div><label class="form-label small mb-0" for="gs-by">Approved by</label>
+        <input id="gs-by" name="approved_by" maxlength="200" class="form-control form-control-sm" title="Leave blank to save as a draft"></div>
+      <div><label class="form-label small mb-0" for="gs-on">Approved on</label>
+        <input id="gs-on" type="date" name="approved_on" class="form-control form-control-sm" title="Required with Approved by"></div>
+      <button type="submit" class="btn btn-sm btn-primary">Save gate requirements</button>
+    </div>
+  </form>
+</div></div>
+
+<div class="card"><div class="card-body">
+  <h2 class="h6">Modules</h2>
+  <p class="small muted mb-2">{% if module_row %}Last changed by {{ module_row.author_emp_id|person }} on {{ module_row.valid_from|short_date }}{% if module_row.change_note %}: {{ module_row.change_note }}{% endif %}{% else %}Never changed; all modules are on.{% endif %} Turning a module off hides it; nothing is deleted.</p>
+  <form method="post" action="{% url 'set_modules' %}">{% csrf_token %}
+    {% for m in module_rows %}
+    <div class="form-check mb-1">
+      <input class="form-check-input" type="checkbox" name="{{ m.key }}" id="mod-{{ m.key }}"{% if m.on %} checked{% endif %}>
+      <label class="form-check-label" for="mod-{{ m.key }}"><b>{{ m.label }}</b> <span class="small muted">{{ m.desc }}</span></label>
+    </div>
+    {% endfor %}
+    <div class="d-flex gap-2 align-items-end flex-wrap mt-2">
+      <div class="flex-grow-1"><label class="form-label small mb-0" for="mod-note">Change note</label>
+        <input id="mod-note" name="change_note" maxlength="300" class="form-control form-control-sm" required></div>
+      <button type="submit" class="btn btn-sm btn-primary">Save modules</button>
+    </div>
+  </form>
+</div></div>
+
+<div class="card"><div class="card-body">
+  <h2 class="h6">Role management</h2>
+  <table class="table table-sm align-middle">
+    <thead><tr><th>Employee ID</th><th>Name</th><th>Role</th><th>Scope</th><th>Since</th><th></th></tr></thead>
+    <tbody>
+    {% for r in roles %}
+    <tr><td>{{ r.ra.emp_id }}</td><td>{{ r.ra.emp_id|person }}</td><td>{{ r.ra.get_role_display }}</td>
+      <td class="small">{% if r.ra.initiative_entity %}{{ r.scope|default:"Unknown initiative" }}{% else %}All initiatives{% endif %}</td>
+      <td class="small">{{ r.ra.valid_from|short_date }}</td>
+      <td><form method="post" action="{% url 'retire_role' r.ra.entity_id %}" class="m-0">{% csrf_token %}<button type="submit" class="btn btn-sm btn-outline-secondary">Retire</button></form></td></tr>
+    {% empty %}<tr><td colspan="6" class="muted">No role assignments.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  <form method="post" action="{% url 'roles' %}" class="d-flex gap-2 align-items-center flex-wrap mt-2">{% csrf_token %}
+    <input name="emp_id" class="form-control form-control-sm w-auto" placeholder="Employee ID" required>
+    <input name="display_name" class="form-control form-control-sm w-auto" placeholder="Display name">
+    <select name="role" class="form-select form-select-sm w-auto" required>
+      {% for value, label in role_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+    </select>
+    <select name="initiative_entity" class="form-select form-select-sm w-auto">
+      <option value="">Global (all initiatives)</option>
+      {% for i in initiative_choices %}<option value="{{ i.entity_id }}">{{ i.name }}</option>{% endfor %}
+    </select>
+    <button type="submit" class="btn btn-sm btn-outline-secondary">Add role assignment</button>
+  </form>
+</div></div>
+{% endblock %}

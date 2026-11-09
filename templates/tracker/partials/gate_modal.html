@@ -1,0 +1,21 @@
+<div class="modal-bg"><div class="modal-box">
+  <div class="d-flex justify-content-between"><h2 class="h5">Record sign-off — {{ stage.number }}. {{ stage.name }}</h2>
+    <button type="button" class="btn btn-sm btn-outline-secondary" hx-get="{% url 'close_modal' %}" hx-target="#modal" hx-swap="innerHTML">Close</button></div>
+  <p class="small muted mb-2">Expected approver: {{ expected_approver }}</p>
+  <form method="post" action="{% url 'stage_gate' eid stage.number %}" hx-post="{% url 'stage_gate' eid stage.number %}" hx-target="#modal" hx-swap="innerHTML">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for f in form %}
+    <div class="mb-2">
+      <label class="form-label mb-0" for="{{ f.id_for_label }}">{{ f.label }}</label>
+      {% if f.name == "decision" %}<select name="decision" id="{{ f.id_for_label }}" class="form-select form-select-sm">
+        {% for value, label in f.field.choices %}<option value="{{ value }}" {% if f.value == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+      {% elif f.name == "conditions" %}<textarea name="conditions" id="{{ f.id_for_label }}" rows="2" class="form-control form-control-sm">{{ f.value|default:'' }}</textarea>
+      {% elif f.name == "approved_on" %}{{ f }}
+      {% else %}<input name="{{ f.html_name }}" id="{{ f.id_for_label }}" class="form-control form-control-sm" value="{{ f.value|default:'' }}" required>{% endif %}
+      {% for e in f.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    </div>
+    {% endfor %}
+    <button class="btn btn-primary btn-sm">Record</button>
+  </form>
+</div></div>

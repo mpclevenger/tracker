@@ -1,0 +1,12 @@
+/* lifecycle pages. */
+.pill.blue { background: var(--accent); }
+.stage-panel summary { padding: 3px 0; }
+.stage-panel .stage-body { margin: 2px 0 6px 18px; }
+.stage-panel .item-row td { vertical-align: top; padding-top: 4px; padding-bottom: 4px; }
+.stage-panel .item-actions { white-space: nowrap; }
+.stage-panel .sent-back { color: #7d4e00; }
+.basis-pick .btn-check:checked + .btn { background: var(--accent); border-color: var(--accent); color: #fff; }
+.reqtag { display: inline-block; border: 1px solid var(--line); border-radius: 999px; padding: 1px 10px; margin-right: 6px; font-size: 12.5px; background: #fff; }
+.reqtag.mine { border-color: var(--accent); background: #ddf4ff; }
+.stage-bar { display: flex; gap: 4px; margin: 8px 0 16px; }
+.stage-bar a { flex: 1; color: #fff; padding: 8px 6px; border-radius: 4px; font-size: 12px; text-align: center; text-decoration: none; }

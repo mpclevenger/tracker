@@ -1,0 +1,1 @@
+{% if shared %}{{ tile.name }}{% else %}<a href="{% url 'initiative' tile.entity_id %}">{{ tile.name }}</a>{% endif %}

@@ -1,0 +1,11 @@
+.venv
+.git
+__pycache__
+*.pyc
+.env
+staticfiles
+.pytest_cache
+docs
+scripts
+**/tests
+WORK_NOTES.md

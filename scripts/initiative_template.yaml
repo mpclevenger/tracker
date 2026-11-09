@@ -1,0 +1,146 @@
+# One initiative, ready to load with:  python scripts/load_initiative.py scripts/initiative_template.yaml
+#
+# Edit the values to match the real initiative. Dates are YYYY-MM-DD. Keep text on one line per field. Delete any optional block you
+# don't need. The loader refuses to run if an initiative with the same name already exists.
+# Everything below is a SailPoint-shaped example, not real data.
+
+initiative:
+  name: SailPoint Onboarding
+  owner:
+    emp_id: E00101            # employee ID from the HR / SSO claim
+    display_name: John
+  delegates: []               # optional: [{emp_id: E00102, display_name: ...}]
+  sponsor: CISO
+  status: active              # proposed | active   (proposed = still in the Tech Risk intake queue)
+  current_phase: Build        # must match one of the phase names below
+  description: >
+    Onboard SailPoint as the identity governance platform: joiner/mover/leaver provisioning and
+    quarterly access certifications. Wave 1 covers the in-scope SOX applications.
+  why_it_matters: >
+    Replaces manual user access reviews and provisioning approvals for every SOX application;
+    the certification evidence auditors rely on changes shape.
+  business_driver: Reduce manual access-review effort and audit findings on provisioning evidence.
+  expected_systems: In-scope SOX applications; HR feed; Entra ID
+  submitted_on: 2026-07-01
+  accepted_on: 2026-07-14     # omit when status is proposed
+  baseline_go_live: 2026-12-15   # target go-live at acceptance; slip is measured from here
+  target_go_live: 2027-01-19     # current target
+  # Oversight level inputs (true/false). Tech Risk can override the level in the app.
+  oversight:
+    affects_tier01_app: true
+    affects_sox_app: true
+    changes_key_controls: true
+    migrates_regulated_data: false
+    changes_access_model: true
+    moves_to_vendor_or_cloud: false
+
+# Phases map to the lifecycle stages: 1 Mobilize & Design, 2 Build & Configure, 3 Test & Validate,
+# 4 Cutover & Go-live, 5 Hypercare & Stabilize. Forecast/actual default to planned when omitted.
+phases:
+  - {name: Design,    stage: 1, planned_start: 2026-07-01, planned_end: 2026-08-15, forecast_start: 2026-07-01, forecast_end: 2026-08-20}
+  - {name: Build,     stage: 2, planned_start: 2026-08-16, planned_end: 2026-10-31, forecast_start: 2026-08-21, forecast_end: 2026-11-20}
+  - {name: Test,      stage: 3, planned_start: 2026-11-01, planned_end: 2026-12-05, forecast_start: 2026-11-21, forecast_end: 2027-01-05}
+  - {name: Cutover,   stage: 4, planned_start: 2026-12-06, planned_end: 2026-12-15, forecast_start: 2027-01-06, forecast_end: 2027-01-19}
+  - {name: Hypercare, stage: 5, planned_start: 2026-12-16, planned_end: 2027-01-31, forecast_start: 2027-01-20, forecast_end: 2027-03-05}
+
+# status: planned | on_track | slipped | done.  key: true puts it on the exec timeline and in the RAG rules.
+milestones:
+  - {name: Connector design sign-off,       planned: 2026-08-15, forecast: 2026-08-20, actual: 2026-08-20, pct_complete: 100, status: done,    key: true}
+  - {name: Wave 1 connectors built,         planned: 2026-10-31, forecast: 2026-11-20, pct_complete: 85,  status: slipped, key: true, note: ERP and HR connector defects}
+  - {name: Certification dry run (UAT exit), planned: 2026-12-05, forecast: 2027-01-05, pct_complete: 20,  status: slipped, key: true}
+  - {name: Go-live (Wave 1),                planned: 2026-12-15, forecast: 2027-01-19, pct_complete: 0,   status: slipped, key: true}
+
+# type: risk | issue | dependency.  rating: H | M | L.  status: open | mitigating | closed.
+# source: owner | tech_risk.  visibility: exec (leadership and auditors) | owner | internal (Tech Risk only).
+risks:
+  - type: risk
+    title: Certification evidence format not yet agreed with Internal Audit
+    rating: H
+    owner: John
+    target_date: 2026-11-25
+    status: open
+    source: owner
+    visibility: exec
+    mitigation: Walkthrough of SailPoint certification reports booked with Internal Audit; manual UAR runs in parallel for Q4.
+  - type: issue
+    title: ERP and HR connector defects delaying build exit
+    rating: M
+    owner: Vendor PM
+    target_date: 2026-11-20
+    status: mitigating
+    source: owner
+    visibility: exec
+    mitigation: Weekly defect triage with vendor.
+  - type: dependency
+    title: HR feed must supply employee ID for all contractors
+    rating: M
+    owner: HR Systems
+    target_date: 2026-12-01
+    status: open
+    source: tech_risk
+    visibility: owner
+
+# control_id must exist in the control library (Workbench → Admin → upload), or give name/framework/
+# control_owner here and the loader will add it.
+# impact_type: new | modified | retired | interim.  readiness: not_started | in_progress | submitted | ready
+control_impacts:
+  - control_id: ITGC-LA-02
+    name: Quarterly user access review
+    framework: SOX ITGC
+    control_owner: IAM
+    impact_type: modified
+    readiness: in_progress
+    compensating_control: Manual Q4 user access review runs in parallel
+    evidence_link: https://evidence.example/sailpoint/uar
+  - control_id: ITGC-LA-04
+    name: Privileged access provisioning approval
+    framework: SOX ITGC
+    control_owner: IAM
+    impact_type: modified
+    readiness: not_started
+  - control_id: ITGC-LA-01
+    name: Joiner / mover / leaver provisioning approval
+    framework: SOX ITGC
+    control_owner: IAM
+    impact_type: new
+    readiness: in_progress
+    compensating_control: Manual provisioning approvals continue until cutover
+  - control_id: ITGC-CM-01
+    name: Change approval before production deployment
+    framework: SOX ITGC
+    control_owner: Change Mgmt
+    impact_type: modified
+    readiness: ready
+    evidence_link: https://evidence.example/sailpoint/cm
+
+# Optional. Posted by the owner; the newest one sets the staleness clock.
+updates:
+  - date: 2026-09-18
+    text: Build 60% complete, on plan. 8 of 12 connectors configured.
+  - date: 2026-10-09
+    text: ERP and HR connector defects slowing build exit; forecast Nov 10.
+  - date: 2026-10-30
+    text: Build exit re-forecast to Nov 20. Go-live moved to Jan 19 after steering committee.
+
+# Optional Tech Risk overlay. Highlights appear on the exec tile (max 3 shown), in this order.
+tech_risk:
+  author_emp_id: E00001
+  author_name: Jane
+  commentary: Program has re-planned twice. Our concern is the Q4 certification cycle and the audit evidence it produces.
+  highlights:
+    - January go-live overlaps the Q4 access certification cycle; decision needed on which tool certifies Q4
+    - Certification evidence format still to be agreed with Internal Audit
+    - Privileged access provisioning through SailPoint not started — manual approvals continue
+  internal_notes:
+    - Sponsor pushing for January to hit the OKR. Escalate to CTO if no decision on the Q4 cycle by Nov 15.
+
+  # Optional: lifecycle confirmations already made. stage 0–6, item = checklist position (0-based) from the
+  # Lifecycle & guidance page. basis: reviewed | observed | attested.
+  stage_checks:
+    - {stage: 0, item: 0, date: 2026-07-14, basis: reviewed, evidence: Intake acceptance record}
+    - {stage: 0, item: 1, date: 2026-07-14, basis: reviewed, evidence: Intake acceptance record}
+    - {stage: 0, item: 2, date: 2026-07-14, basis: reviewed, evidence: Intake form}
+    - {stage: 1, item: 0, date: 2026-08-22, basis: reviewed, evidence: https://evidence.example/sailpoint/design-signoff}
+  gate_approvals:
+    - {stage: 0, approver: Head of Tech Risk, date: 2026-07-14, evidence: Intake acceptance record}
+    - {stage: 1, approver: CISO, date: 2026-08-20, evidence: https://evidence.example/sailpoint/design-signoff, decision: proceed}

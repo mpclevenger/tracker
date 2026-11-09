@@ -1,0 +1,25 @@
+<div class="modal-bg"><div class="modal-box">
+  <div class="d-flex justify-content-between"><h2 class="h5">{{ title }}</h2>
+    <button type="button" class="btn btn-sm btn-outline-secondary" hx-get="{% url 'close_modal' %}" hx-target="#modal" hx-swap="innerHTML">Close</button></div>
+  <p class="mb-2"><b>{{ stage.number }}. {{ stage.name }}</b> — {{ item_text }}</p>
+  <form method="post" action="{{ post_url }}" hx-post="{{ post_url }}" hx-target="#modal" hx-swap="innerHTML">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% if action == "accept" %}
+    <label class="form-label mb-0">Basis</label>
+    <div class="basis-pick mb-2">
+      {% for radio in form.basis %}{{ radio.tag }}<label class="btn btn-sm btn-outline-secondary" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>{% endfor %}
+    </div>
+    {% endif %}
+    {% for f in form %}{% if f.name != "basis" %}
+    <div class="mb-2">
+      <label class="form-label mb-0" for="{{ f.id_for_label }}">{{ f.label }}</label>
+      {% if f.name == "text" %}<textarea name="{{ f.html_name }}" id="{{ f.id_for_label }}" rows="2" class="form-control form-control-sm" required>{{ f.value|default:'' }}</textarea>
+      {% else %}<input name="{{ f.html_name }}" id="{{ f.id_for_label }}" class="form-control form-control-sm" value="{{ f.value|default:'' }}" {% if f.field.required %}required{% endif %}>{% endif %}
+      {% for e in f.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    </div>
+    {% endif %}{% endfor %}
+    {% for e in form.basis.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    <button class="btn btn-primary btn-sm">{{ title }}</button>
+  </form>
+</div></div>

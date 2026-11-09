@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Exec summary · IT Initiative Risk Tracker{% endblock %}
+
+{% block banner %}
+{% if shared %}
+<div class="banner snap">Read-only share link · {% if snapshot %}snapshot <b>"{{ snapshot.label }}"</b> taken {{ snapshot.taken_at|date:"M j, Y H:i" }}{% else %}live data{% endif %}.</div>
+{% elif snapshot %}
+<div class="banner snap">{% if as_of %}As of {{ as_of|short_date }}: showing {% else %}Showing {% endif %}<b>snapshot "{{ snapshot.label }}"</b> taken {{ snapshot.taken_at|date:"M j, Y H:i" }} by {{ snapshot.taken_by|person }} <a href="{% url 'exec_summary' %}">Back to live</a></div>
+{% else %}{{ block.super }}{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 flex-wrap mb-3">
+  <h1 class="m-0 flex-grow-1">Exec summary</h1>
+  {% if not shared %}
+  <form method="get" action="{% url 'exec_summary' %}" class="d-flex align-items-center gap-2 m-0">
+    <label class="small muted" for="view-select">View</label>
+    <select id="view-select" name="snapshot" class="form-select form-select-sm w-auto">
+      <option value="">Live</option>
+      {% for s in snapshots %}<option value="{{ s.pk }}" {% if snapshot and snapshot.pk == s.pk %}selected{% endif %}>Snapshot · {{ s.label }} ({{ s.taken_at|short_date }})</option>{% endfor %}
+    </select>
+    <button type="submit" class="btn btn-sm btn-outline-secondary">Go</button>
+  </form>
+  {% if modules.share_links %}<span class="small"><span class="muted">Read-only link:</span> <a href="{{ share_url }}" class="text-break">{{ share_url }}</a></span>{% endif %}
+  {% endif %}
+</div>
+
+<div class="strip exec-strip">
+  <div class="card"><div class="card-body">
+    <div class="lbl" title="Active initiatives">Status summary</div>
+    <div class="stats">
+      {% for p in pulse %}
+      <div class="stat {{ p.rag }}" title="{{ p.rag|cap }}">
+        <div class="stat-top"><b>{{ p.count }}</b>{% if p.delta is not None %}<span>{% if p.delta > 0 %}▲ {{ p.delta }} since {{ mon }}{% elif p.delta < 0 %}▼ {{ p.delta|cut:"-" }} since {{ mon }}{% else %}No change{% endif %}</span>{% endif %}</div>
+        {% if p.movers %}<div class="stat-mv">{% for t in p.movers %}<{% if shared %}span{% else %}a href="{% url 'initiative' t.entity_id %}"{% endif %} class="mv" title="{{ t.prior|cap }} → {{ t.effective|cap }} since {{ mon }}">{% if t.comparison.0 == "up" %}▲{% else %}▼{% endif %} {{ t.name }}</{% if shared %}span{% else %}a{% endif %}>{% endfor %}</div>{% endif %}
+      </div>
+      {% endfor %}
+      {% if ctx.comparison_snapshot %}<div class="stat closed"><div class="stat-top"><b>{{ ctx.closed_since|length }}</b><span>closed since {{ mon }}</span></div></div>{% endif %}
+    </div>
+  </div></div>
+
+  <div class="card"><div class="card-body">
+    <div class="lbl" title="Go-lives in the next 90 days">Next 90 days</div>
+    {% if ctx.upcoming %}
+    <div class="gl-list">
+      {% for t in ctx.upcoming %}
+      <div class="gl-row">
+        <div class="gl-days"><b>{{ t.days_to_go_live }}</b><span>days</span></div>
+        <div class="gl-main">
+          <div>{% include "tracker/partials/exec_name.html" with tile=t %} <span class="muted small">· {{ t.go_live|short_date }}</span></div>
+          {% if t.controls_total %}<div class="gl-ctl">
+            {% for cid, ready in t.controls %}<span class="sq {% if ready == "ready" %}green{% elif ready == "not_started" %}red{% else %}amber{% endif %}" title="{{ cid }}"></span>{% endfor %}
+            <span class="gl-ctl-txt">{% if t.controls_ready >= t.controls_total %}Controls ready{% else %}{{ t.controls_ready }} of {{ t.controls_total }} controls ready{% endif %}</span>
+          </div>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}<div class="muted small mt-1">No go-lives in the next 90 days</div>{% endif %}
+  </div></div>
+</div>
+
+<h2 class="sect">Needs attention <span class="small muted">({{ n_flagged }} of {{ n_active }} active)</span></h2>
+{% if ctx.attention %}
+<div class="tiles">
+  {% for tile in ctx.attention %}{% include "tracker/partials/exec_tile.html" %}{% endfor %}
+</div>
+{% else %}<div class="card"><div class="card-body muted">Nothing flagged</div></div>{% endif %}
+
+<h2 class="sect">Timeline</h2>
+<div class="card"><div class="card-body">
+  {% if ctx.mode == "live" %}<div class="timeline-scroll">{{ timeline_svg|safe_svg }}</div>{% else %}<span class="muted">Live view only</span>{% endif %}
+</div></div>
+
+{% if ctx.closed_since %}
+<h2 class="sect">Closed since {{ ctx.comparison_label|default:"the start" }}</h2>
+<table class="table table-sm bg-white">
+  <tbody>
+  {% for t in ctx.closed_since %}
+    <tr>
+      <td>{% include "tracker/partials/exec_name.html" with tile=t %}</td>
+      <td>{{ t.owner_emp_id|person }}</td>
+      <td class="small">closed {{ t.closed_at|short_date }}</td>
+      <td class="small">{{ t.closure }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if ctx.proposed and not viewer.is_senior_management %}
+<p class="small muted mt-3 mb-0">{{ ctx.proposed|length }} initiative{{ ctx.proposed|length|pluralize }} in intake, not yet accepted: {% for t in ctx.proposed %}{% include "tracker/partials/exec_name.html" with tile=t %}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>
+{% endif %}
+{% endblock %}

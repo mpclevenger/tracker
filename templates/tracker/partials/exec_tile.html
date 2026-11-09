@@ -1,0 +1,10 @@
+{% load ui %}{% if shared %}<div class="tile {{ tile.effective }}">{% else %}<a class="tile {{ tile.effective }}" href="{% url 'initiative' tile.entity_id %}">{% endif %}
+  <h3>{{ tile.name }}
+    {% if tile.is_stale %}<span class="pill stale">No check-in · {{ tile.stale_days }}d</span>{% endif %}
+    {% if viewer.sees_override_detail and tile.override %}{% if ctx.mode == "snapshot" %}<span class="pill override">Overridden: {{ tile.derived|cap }} → {{ tile.effective|cap }}</span>{% else %}<span class="pill override" hx-get="{% url 'override_modal' tile.entity_id %}" hx-target="#modal" hx-swap="innerHTML">Overridden: {{ tile.derived|cap }} → {{ tile.effective|cap }} ›</span>{% endif %}{% endif %}
+  </h3>
+  {% with c=tile.comparison %}<div class="meta compare {{ c.0 }}"{% if ctx.comparison_label %} title="Compared with the last snapshot: {{ ctx.comparison_label }}"{% endif %}>{{ c.1 }}</div>{% endwith %}
+  <div class="meta">{{ tile.owner_emp_id|person }} · last check-in {% if tile.last_update_at %}{{ tile.last_update_at|short_date }} ({{ tile.last_update_at|days_ago }}){% else %}never{% endif %}</div>
+  {% if tile.chip %}<div class="meta why"><b>Why {{ tile.effective }}:</b> {{ tile.chip }}</div>{% endif %}
+  {% if tile.highlights %}<ul>{% for h in tile.highlights %}<li>{{ h }}</li>{% endfor %}</ul>{% endif %}
+{% if shared %}</div>{% else %}</a>{% endif %}

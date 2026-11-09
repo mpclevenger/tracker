@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Edit stage · IT Initiative Risk Tracker{% endblock %}
+{% block content %}
+<h1>Edit stage — {{ stage.number }}. {{ stage.name }}</h1>
+<p class="muted">Saving creates a new version. Existing records follow their item when you reorder or reword it; records for removed items are closed.</p>
+<form method="post" class="card" style="max-width:860px"><div class="card-body">{% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for f in form %}
+  <div class="mb-3">
+    <label class="form-label mb-0" for="{{ f.id_for_label }}">{{ f.label }}{% if f.field.required %} (required){% endif %}</label>
+    {% if f.help_text %}<span class="small muted">— {{ f.help_text }}</span>{% endif %}
+    {{ f }}
+    {% for e in f.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+  </div>
+  {% endfor %}
+  <button class="btn btn-primary btn-sm">Save</button>
+  <a class="btn btn-sm btn-link" href="{% url 'lifecycle' %}#stage-{{ stage.number }}">Cancel</a>
+</div></form>
+{% endblock %}
