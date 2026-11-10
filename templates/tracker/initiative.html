@@ -16,6 +16,7 @@
     {% elif initiative.status == "closed" or initiative.status == "archived" %}<span class="pill outline">{{ initiative.get_status_display }}</span>
     {% else %}{% rag_pill ev.effective %}{% if ev.chip %}<span class="ini-chip {{ ev.derived }}" title="{{ ev.rule }}">{{ ev.chip }}</span>{% endif %}{% endif %}
   </span></div>
+  {% if initiative.sox_applicable %}<div class="ini-fact"><span class="l">Scope</span><span class="v"><span class="pill sox" title="Relevant to SOX">SOX</span></span></div>{% endif %}
   <div class="ini-fact"><span class="l">Stage</span><span class="v">{{ stage.name }}</span></div>
   <div class="ini-fact"><span class="l">Oversight</span><span class="v">
     {% if actor.is_tech_risk %}<span class="pill ov-{{ initiative.oversight }}" title="{{ s.oversight_tip }}" hx-get="{% url 'oversight_modal' eid %}" hx-target="#modal" hx-swap="innerHTML">{{ initiative.oversight_label }}</span>
@@ -37,9 +38,10 @@
 {% if initiative.intake_comments and initiative.status == "proposed" %}
 <div class="warn mb-2"><b>Returned by Tech Risk:</b> {{ initiative.intake_comments }}</div>
 {% endif %}
-{% if actor.is_tech_risk and initiative.status != "archived" %}
+{% if actor.is_tech_risk %}
 <div class="ini-actions">
-  {% if initiative.status == "proposed" %}
+  {% if initiative.status == "archived" %}
+  {% elif initiative.status == "proposed" %}
     <form method="post" action="{% url 'intake_accept' eid %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-primary btn-sm">Accept</button></form>
     <form method="post" action="{% url 'intake_return' eid %}" class="d-flex gap-2">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><input name="comments" class="form-control form-control-sm" placeholder="Comments for the owner" required style="width:300px"><button class="btn btn-outline-secondary btn-sm">Return</button></form>
   {% elif initiative.status == "active" %}
@@ -52,6 +54,15 @@
   {% elif initiative.status == "closed" %}
     <form method="post" action="{% url 'archive_initiative' eid %}">{% csrf_token %}<button class="btn btn-outline-secondary btn-sm py-0">Archive</button></form>
   {% endif %}
+  <details><summary class="small" style="cursor:pointer;color:var(--accent)">Delete initiative…</summary>
+    <form method="post" action="{% url 'delete_initiative' eid %}" class="mt-2">{% csrf_token %}
+      <div class="small muted mb-1">Removes it from every page. History and past snapshots keep it.</div>
+      <label class="form-label mb-0 small" for="del-reason">Reason (required)</label>
+      <textarea id="del-reason" name="reason" rows="2" maxlength="180" class="form-control form-control-sm" required></textarea>
+      <label class="form-label mb-0 small mt-1" for="del-name">Type the initiative name to confirm</label>
+      <input id="del-name" name="confirm_name" class="form-control form-control-sm" autocomplete="off" required>
+      <button class="btn btn-outline-danger btn-sm mt-2">Delete</button>
+    </form></details>
 </div>
 {% endif %}
 
@@ -186,7 +197,7 @@
 <table class="table table-sm"><thead><tr><th>Control</th><th>Framework</th><th>Impact</th><th>Compensating control</th><th>Readiness</th><th>Evidence</th>{% if actor.is_tech_risk %}<th>Review</th><th>Visibility</th>{% endif %}</tr></thead><tbody>
   {% for row in impact_rows %}
   <tr class="{% if actor.is_tech_risk and row.impact.visibility != 'exec' %}hidden-row{% endif %}">
-    <td>{% if row.control.trac_url %}<a href="{{ row.control.trac_url }}" target="_blank" rel="noopener" title="Guidance in TRAC"><b>{{ row.control.control_id }}</b></a>{% else %}<b>{{ row.control.control_id }}</b>{% endif %}<br><span class="small">{{ row.control.name }}</span>{% if actor.is_tech_risk and row.impact.visibility != "exec" %} <span class="tag internal">hidden from exec</span>{% endif %}</td>
+    <td>{% if row.control.trac_url %}<a href="{{ row.control.trac_url }}" target="_blank" rel="noopener" title="Guidance in TRAC"><b>{{ row.control.control_id }}</b></a>{% else %}<b>{{ row.control.control_id }}</b>{% endif %}<br><span class="small">{{ row.control.name }}</span><br><span class="small muted" title="Date the control must be ready by">Needed by: {{ row.due.0 }}{% if row.due.1 %} · {{ row.due.1|short_date }}{% endif %}</span>{% if actor.is_tech_risk and row.impact.visibility != "exec" %} <span class="tag internal">hidden from exec</span>{% endif %}</td>
     <td>{{ row.control.framework }}</td><td>{{ row.impact.get_impact_type_display }}</td>
     <td class="small">{{ row.impact.compensating_control|default:"—" }}</td>
     <td>{% readiness_pill row.impact.readiness %}{% if row.impact.readiness == "sent_back" and row.impact.review_comment and not actor.is_senior_management %}<div class="ini-ctl-comment">{{ row.impact.review_comment }}</div>{% endif %}</td>

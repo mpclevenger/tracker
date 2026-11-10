@@ -1,6 +1,6 @@
 from django.urls import path
 
-from tracker.views import audit, exec_summary, initiative, intake, lifecycle, owner, workbench
+from tracker.views import audit, exec_summary, initiative, intake, lifecycle, owner, watch, workbench
 
 urlpatterns = [
     # exec summary (landing for Tech Risk, Senior Management, Auditor)
@@ -35,6 +35,14 @@ urlpatterns = [
     path("intake/", intake.intake_form, name="intake"),
     path("intake/<uuid:entity_id>/accept/", intake.accept, name="intake_accept"),
     path("intake/<uuid:entity_id>/return/", intake.return_to_owner, name="intake_return"),
+    # watch list
+    path("watch/", watch.watch_list, name="watch_list"),
+    path("watch/add/", watch.watch_add, name="watch_add"),
+    path("watch/<uuid:entity_id>/", watch.watch_item, name="watch_item"),
+    path("watch/<uuid:entity_id>/edit/", watch.watch_edit, name="watch_edit"),
+    path("watch/<uuid:entity_id>/confirm/", watch.watch_confirm, name="watch_confirm"),
+    path("watch/<uuid:entity_id>/drop/", watch.watch_drop, name="watch_drop"),
+    path("watch/<uuid:entity_id>/delete/", watch.watch_delete, name="watch_delete"),
     # workbench (Tech Risk)
     path("workbench/", workbench.triage, name="workbench"),
     path("workbench/snapshots/", workbench.snapshots_tab, name="workbench_snapshots"),
@@ -50,6 +58,7 @@ urlpatterns = [
     path("workbench/admin/roles/", workbench.roles, name="roles"),
     path("workbench/admin/roles/<uuid:entity_id>/retire/", workbench.retire_role, name="retire_role"),
     path("initiative/<uuid:entity_id>/close/", workbench.close_initiative, name="close_initiative"),
+    path("initiative/<uuid:entity_id>/delete/", workbench.delete_initiative, name="delete_initiative"),
     path("initiative/<uuid:entity_id>/archive/", workbench.archive_initiative, name="archive_initiative"),
     # lifecycle & guidance
     path("lifecycle/", lifecycle.guidance_page, name="lifecycle"),

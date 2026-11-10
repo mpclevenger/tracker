@@ -5,6 +5,7 @@
     {% for key, label, checked in questions %}
     <div class="form-check"><input class="form-check-input" type="checkbox" id="q_{{ key }}" name="q_{{ key }}" {% if checked %}checked{% endif %}><label class="form-check-label" for="q_{{ key }}">{{ label }}</label></div>
     {% endfor %}
+    <div class="form-check mt-2"><input class="form-check-input" type="checkbox" id="sox_applicable" name="sox_applicable" {% if sox_applicable %}checked{% endif %}><label class="form-check-label" for="sox_applicable" title="Show to auditors as SOX-relevant">SOX applicable</label></div>
     <div class="my-2">From answers: <b>{{ derived_label }}</b></div>
     <label class="form-label mb-0" for="ov-level">Override</label>
     <select id="ov-level" name="override" class="form-select form-select-sm w-auto">

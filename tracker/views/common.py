@@ -26,6 +26,29 @@ def require_editor_or_403(request, initiative):
     return None
 
 
+SCOPES = ("sox", "all")
+
+
+def resolve_scope(request, actor, default=None):
+    """Scope from ?scope=; defaults to sox for auditors who aren't Tech Risk, else all."""
+    raw = request.GET.get("scope", "")
+    if raw in SCOPES:
+        return raw
+    if default:
+        return default
+    return "sox" if actor.is_auditor and not actor.is_tech_risk else "all"
+
+
+def scope_context(request, scope):
+    """Context for the scope toggle: the active scope and a link per option that keeps other query params."""
+    links = []
+    for value, label in (("all", "All initiatives"), ("sox", "SOX applicable")):
+        params = request.GET.copy()
+        params["scope"] = value
+        links.append({"label": label, "url": f"{request.path}?{params.urlencode()}", "active": value == scope})
+    return {"scope": scope, "scope_links": links}
+
+
 def is_htmx(request):
     return request.headers.get("HX-Request") == "true"
 

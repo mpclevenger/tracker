@@ -6,10 +6,11 @@ from datetime import date, datetime
 from core import clock
 from meetings import services as meetings_services
 from tracker.models import Initiative, RAG_ORDER, RiskItem, Snapshot
-from tracker.services import rag, snapshots
+from tracker.services import rag, snapshots, watch
 from tracker.services.bundle import Bundle, load_bundles
 from tracker.visibility import initiatives_for
 
+WATCH_ROWS = 6
 CAP = lambda s: s[0].upper() + s[1:] if s else s  # noqa: E731
 
 
@@ -45,6 +46,7 @@ class Tile:
     controls: list = field(default_factory=list)  # [(label, readiness)] for the go-live squares
     chip: str = ""  # plain-words label of the top RAG rule
     as_of: date | None = None  # snapshot date when frozen; None = today
+    sox: bool = False  # SOX applicable
 
     @property
     def comparison(self):
@@ -92,6 +94,8 @@ class ExecContext:
     timeline_bundles: list = field(default_factory=list)
     evaluations: dict = field(default_factory=dict)
     overdue_followups: list = field(default_factory=list)  # [(tile, n)], live mode only
+    watch: list = field(default_factory=list)  # watch list rows shown, at most WATCH_ROWS
+    watch_total: int = 0
 
     prev_counts: dict = field(default_factory=dict)  # like-for-like counts at the comparison snapshot
     movers: dict = field(default_factory=dict)  # {rag: [tile]} initiatives whose RAG changed, by current RAG
@@ -121,7 +125,7 @@ def _live_tile(b: Bundle, ev, actor, prior_rows) -> Tile:
         last_update_at=b.last_update.posted_at if b.last_update else None,
         controls_ready=sum(1 for i in b.impacts if i.readiness == "ready"), controls_total=len(b.impacts),
         controls=[(_control_label(b, i), i.readiness) for i in b.impacts],
-        chip=ev.chip,
+        chip=ev.chip, sox=init.sox_applicable,
         prior=prior["effective"] if prior else None, closed_at=init.closed_at, closure=init.closure_control_outcome,
         open_high_risks=sum(1 for r in b.risks if r.rating == RiskItem.Rating.HIGH and r.is_open and r.visibility in layers),
     )
@@ -144,13 +148,18 @@ def _frozen_tile(eid, row, prior_rows, summary, as_of: date) -> Tile:
         controls_total=row.get("controls_total", 0), prior=prior["effective"] if prior else None,
         closed_at=p(row.get("closed_at")), closure=row.get("closure_control_outcome", ""),
         open_high_risks=row.get("open_high_risks", 0), chip=row.get("chip", ""),
+        sox=bool(row.get("sox_applicable", False)),
     )
     tile.as_of = as_of
     return tile
 
 
-def build(actor, snapshot: Snapshot | None = None, followups: bool = True) -> ExecContext:
+def build(actor, snapshot: Snapshot | None = None, followups: bool = True, scope: str = "all",
+          watch_list: bool = True) -> ExecContext:
+    sox_only = scope == "sox"
     visible = list(initiatives_for(actor).exclude(status=Initiative.Status.ARCHIVED))
+    if sox_only and not snapshot:
+        visible = [i for i in visible if i.sox_applicable]
     if snapshot:
         comparison = snapshots.last_snapshot(before=snapshot.taken_at)
         rows = snapshots.rows_by_entity(snapshot)
@@ -158,6 +167,8 @@ def build(actor, snapshot: Snapshot | None = None, followups: bool = True) -> Ex
         counts = dict(snapshot.frozen_summary)
         as_of = clock.local_date(snapshot.taken_at)
         tiles = [_frozen_tile(i.entity_id, rows[i.entity_id], prior_rows, counts, as_of) for i in visible if i.entity_id in rows]
+        if sox_only:
+            tiles = [tl for tl in tiles if tl.sox]
         ctx = ExecContext("snapshot", snapshot, comparison, comparison.label if comparison else "", counts)
         ref_at = comparison.taken_at if comparison else None
         upto = snapshot.taken_at
@@ -199,6 +210,17 @@ def build(actor, snapshot: Snapshot | None = None, followups: bool = True) -> Ex
     )
     ctx.high_by_initiative = [(tl, tl.open_high_risks) for tl in active if tl.open_high_risks]
     ctx.stale = [tl for tl in active if tl.is_stale]
+    if sox_only and snapshot:
+        ctx.counts = {
+            **counts,
+            "active": len(active),
+            "green": len(ctx.on_track),
+            "amber": sum(1 for tl in active if tl.effective == "amber"),
+            "red": sum(1 for tl in active if tl.effective == "red"),
+            "golive90": len(ctx.upcoming),
+            "high_open": ctx.n_high,
+            "stale": len(ctx.stale),
+        }
     if ctx.mode == "live" and followups:
         per_initiative = {}
         for f in meetings_services.overdue_followups([tl.entity_id for tl in active]):
@@ -209,6 +231,14 @@ def build(actor, snapshot: Snapshot | None = None, followups: bool = True) -> Ex
         if tl.status == Initiative.Status.CLOSED and tl.closed_at
         and (ref_at is None or tl.closed_at > ref_at) and (upto is None or tl.closed_at <= upto)
     ]
+    if watch_list:
+        if snapshot:
+            rows = watch.thaw(snapshot.frozen_summary.get("watch"))
+        else:
+            rows = watch.thaw(watch.freeze(watch.open_items()))
+        if sox_only:
+            rows = [r for r in rows if r.get("sox_applicable")]
+        ctx.watch, ctx.watch_total = rows[:WATCH_ROWS], len(rows)
     if not actor.is_senior_management:
         ctx.proposed = [tl for tl in tiles if tl.status == Initiative.Status.PROPOSED]
     return ctx

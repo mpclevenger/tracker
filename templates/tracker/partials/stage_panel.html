@@ -12,7 +12,7 @@
         {% for it in row.items %}
         <tr class="item-row">
           <td><span class="pill {{ it.pill_color }}">{{ it.pill_label }}</span></td>
-          <td>{{ it.text }}{% if row.trac_url %} <a href="{{ row.trac_url }}" target="_blank" rel="noopener" title="Guidance in TRAC">Guidance</a>{% endif %}</td>
+          <td>{{ it.text }}{% if row.trac_url %} <a href="{{ row.trac_url }}#item-{{ forloop.counter }}" target="_blank" rel="noopener" title="Guidance in TRAC">Guidance</a>{% endif %}</td>
           <td class="small muted">
             {% if it.check %}
               {% if it.state == "na" %}N/A · {{ it.check.comment }}

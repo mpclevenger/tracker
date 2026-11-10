@@ -158,6 +158,7 @@ def _create_intake(actor, data):
         owner_emp_id=data["owner_emp_id"].strip(), status=Initiative.Status.PROPOSED, phase="Intake",
         business_driver=data["business_driver"], why_it_matters=data["why_it_matters"],
         expected_systems=data["expected_systems"], target_go_live=data["target_go_live"], submitted_at=now,
+        sox_applicable=bool(data["affects_sox_app"]),
         **{key: data[key] for key in QUESTION_KEYS},
     )
     eid = init.entity_id

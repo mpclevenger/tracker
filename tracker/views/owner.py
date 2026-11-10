@@ -1,6 +1,7 @@
 """Views: owner. My initiative, check-in, and the edit pages for initiative fields and child rows."""
 
 import uuid
+from datetime import date
 
 from django import forms
 from django.contrib import messages
@@ -306,6 +307,7 @@ class ControlRow(RowForm):
     impact_type = forms.ChoiceField(required=False, choices=ControlImpact.ImpactType.choices)
     compensating_control = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 1}))
     readiness = forms.ChoiceField(required=False, choices=ControlImpact.Readiness.choices)
+    needed_by_milestone = forms.TypedChoiceField(required=False, coerce=_to_uuid, empty_value=None)
     evidence_link = forms.URLField(required=False, max_length=500, assume_scheme="https")
 
     def clean(self):
@@ -346,6 +348,17 @@ def _control_choices(init, items):
             old = Control.objects.filter(entity_id=imp.control_entity).order_by("-valid_from").first()
             label = f"{old.control_id} — {old.name} (retired)" if old else "Unknown control"
             choices.append((str(imp.control_entity), label))
+    return choices
+
+
+def _needed_by_choices(init):
+    """Blank (go-live) plus the initiative's current key milestones, by name and date."""
+    rows = Milestone.objects.current().filter(initiative_entity=init.entity_id, is_key=True)
+    dated = sorted(rows, key=lambda m: (m.actual or m.forecast or m.planned or date.max, m.name))
+    choices = [("", "Go-live")]
+    for m in dated:
+        when = m.actual or m.forecast or m.planned
+        choices.append((str(m.entity_id), f"{m.name} · {when:%b} {when.day}, {when.year}" if when else m.name))
     return choices
 
 
@@ -436,10 +449,10 @@ ROW_PAGES = {
     "controls": {
         "model": ControlImpact, "form": ControlRow, "items": _control_items, "title": "Edit control impact",
         "label": "Control impact",
-        "help": "Pick controls from the current control library. Impact type and readiness drive the RAG rules.",
+        "help": "Pick controls from the current control library. Impact type, readiness and the needed-by milestone drive the RAG rules. Blank means go-live.",
         "columns": [
             ("control_entity", "Control"), ("impact_type", "Impact"), ("compensating_control", "Compensating control"),
-            ("readiness", "Readiness"), ("evidence_link", "Evidence link"),
+            ("readiness", "Readiness"), ("needed_by_milestone", "Needed by"), ("evidence_link", "Evidence link"),
         ],
         "create_extra": lambda actor: {},
     },
@@ -464,6 +477,8 @@ def _edit_rows(request, entity_id, key):
         for form in fs.forms:
             if "phase_entity" in form.fields:
                 form.fields["phase_entity"].choices = _phase_choices(init)
+            if "needed_by_milestone" in form.fields:
+                form.fields["needed_by_milestone"].choices = _needed_by_choices(init)
             if "control_entity" in form.fields:
                 form.fields["control_entity"].choices = _control_choices(init, items)
         return fs

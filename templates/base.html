@@ -22,6 +22,9 @@
       {% if actor.is_any_owner and modules.owner_access %}
       <li class="nav-item"><a class="nav-link {% if nav == 'my' %}active{% endif %}" href="{% url 'my_initiative' %}">My initiative</a></li>
       {% endif %}
+      {% if modules.watch_list and actor.sees_exec_pages %}
+      <li class="nav-item"><a class="nav-link {% if nav == 'watch' %}active{% endif %}" href="{% url 'watch_list' %}">Watch list</a></li>
+      {% endif %}
       {% if actor.is_tech_risk %}
       <li class="nav-item"><a class="nav-link {% if nav == 'workbench' %}active{% endif %}" href="{% url 'workbench' %}">Workbench</a></li>
       {% endif %}

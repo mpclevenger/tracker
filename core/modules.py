@@ -8,6 +8,7 @@ MODULES = [
     ("audit", "Audit access",
      "Auditor role and the Audit page. Off: auditors have no access; Tech Risk keeps the history pages."),
     ("share_links", "Read-only links", "Shareable read-only link to the exec summary."),
+    ("watch_list", "Watch list", "Early-stage items not yet confirmed as initiatives."),
 ]
 KEYS = [key for key, _label, _desc in MODULES]
 LABELS = {key: label for key, label, _desc in MODULES}

@@ -29,7 +29,7 @@ from tracker.models import (
 from tracker import lifecycle as rules
 from tracker.services import curation, lifecycle, rag, snapshots, triage as triage_svc
 from tracker.services.bundle import load_bundle
-from tracker.views.common import get_initiative, require_tech_risk_or_403
+from tracker.views.common import get_initiative, require_tech_risk_or_403, resolve_scope, scope_context
 
 CONTROL_COLUMNS = ["control_id", "name", "framework", "control_owner", "in_scope"]
 OPTIONAL_COLUMNS = ["trac_url"]
@@ -50,7 +50,7 @@ THRESH_LABELS = {
 def _wb_context(request, tab, rows=None):
     """Shared context for the three tabs; computes the Triage count for the tab label."""
     if rows is None:
-        rows, _quiet = triage_svc.triage(request.modules["meetings"])
+        rows, _quiet = triage_svc.triage(request.modules["meetings"], watch_list=request.modules["watch_list"])
     return {"nav": "workbench", "wb_tab": tab, "wb_count": sum(len(v) for v in rows.values())}
 
 
@@ -61,10 +61,11 @@ def triage(request):
     """Triage tab: one table per action group plus the quiet-initiatives footer."""
     if (denied := require_tech_risk_or_403(request)):
         return denied
-    rows, quiet = triage_svc.triage(request.modules["meetings"])
+    scope = resolve_scope(request, request.actor)
+    rows, quiet = triage_svc.triage(request.modules["meetings"], scope, request.modules["watch_list"])
     groups = [(g, rows[g]) for g in triage_svc.GROUPS if rows.get(g)]
     ctx = _wb_context(request, "triage", rows)
-    ctx.update({"groups": groups, "quiet": quiet})
+    ctx.update({"groups": groups, "quiet": quiet, **scope_context(request, scope)})
     return render(request, "tracker/workbench_triage.html", ctx)
 
 
@@ -137,7 +138,7 @@ def admin_tab(request):
         {"key": k, "label": THRESH_LABELS.get(k, k), "value": current_t[k], "default": d}
         for k, d in settings.RAG_THRESHOLD_DEFAULTS.items()
     ]
-    initiatives = {i.entity_id: i for i in Initiative.objects.current()}
+    initiatives = {i.entity_id: i for i in Initiative.objects.current().listed()}
     roles = []
     for ra in RoleAssignment.objects.current().order_by("role", "emp_id"):
         roles.append({
@@ -471,7 +472,7 @@ def roles(request):
         messages.error(request, "Employee ID and a valid role are required.")
         return redirect("workbench_admin")
     if scope:
-        match = Initiative.objects.current().filter(entity_id=scope).first() if _is_uuid(scope) else None
+        match = Initiative.objects.current().listed().filter(entity_id=scope).first() if _is_uuid(scope) else None
         if match is None:
             messages.error(request, "Unknown initiative for the scope.")
             return redirect("workbench_admin")
@@ -550,6 +551,25 @@ def close_initiative(request, entity_id):
     rag.recompute(new)
     messages.success(request, f'"{init.name}" closed.')
     return redirect("initiative", entity_id=init.entity_id)
+
+
+@require_POST
+def delete_initiative(request, entity_id):
+    """Delete (retire) an initiative after a typed-name confirmation and a required reason."""
+    if (denied := require_tech_risk_or_403(request)):
+        return denied
+    init = get_initiative(request, entity_id)
+    typed = request.POST.get("confirm_name", "").strip().casefold()
+    if typed != init.name.strip().casefold():
+        messages.error(request, "Type the initiative name exactly to confirm the delete.")
+        return redirect("initiative", entity_id=init.entity_id)
+    try:
+        curation.delete_initiative(init, request.actor.emp_id, request.POST.get("reason", ""))
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return redirect("initiative", entity_id=init.entity_id)
+    messages.success(request, f'Deleted "{init.name}".')
+    return redirect("workbench")
 
 
 @require_POST

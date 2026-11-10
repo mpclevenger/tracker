@@ -33,7 +33,7 @@ def _parse_uuid(raw):
 
 def _initiative_choices(extra_ids=()):
     """(entity_id, name) for current non-archived initiatives plus any already-linked ones."""
-    current = Initiative.objects.current()
+    current = Initiative.objects.current().listed()
     rows = current.exclude(status=Initiative.Status.ARCHIVED) | current.filter(entity_id__in=list(extra_ids))
     return [(str(i.entity_id), i.name) for i in sorted(rows.distinct(), key=lambda i: i.name.lower())]
 
@@ -162,7 +162,7 @@ def meeting_edit(request, entity_id=None):
             initial.update({k: getattr(meeting, k) for k in services.MEETING_FIELDS})
         else:
             initial["held_on"] = clock.today()
-            target = Initiative.objects.current().filter(entity_id=preset).first() if preset else None
+            target = Initiative.objects.current().listed().filter(entity_id=preset).first() if preset else None
             if target:
                 initial["stage"] = load_bundle(target).current_stage()
         form = MeetingForm(initial=initial, **form_kwargs)

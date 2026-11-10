@@ -13,7 +13,9 @@ EXEC_VISIBLE_STATUSES = [
 
 def initiatives_for(actor, queryset=None):
     """Initiatives the actor may open. Tech Risk: all. Exec/audit: all accepted. Owner: own."""
-    qs = queryset if queryset is not None else Initiative.objects.current()
+    qs = (queryset if queryset is not None else Initiative.objects.current()).exclude(
+        status__in=Initiative.WATCH_STATUSES
+    )
     if actor.is_tech_risk:
         return qs
     cond = Q(pk__in=[])

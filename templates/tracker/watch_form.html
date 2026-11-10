@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{% if item %}Edit watch item{% else %}Add watch item{% endif %} · IT Initiative Risk Tracker{% endblock %}
+{% block content %}
+<h1>{% if item %}Edit watch item{% else %}Add watch item{% endif %}</h1>
+<form method="post" class="card" style="max-width:860px">{% csrf_token %}
+  <div class="card-body">
+    {{ form.non_field_errors }}
+    <div class="row g-3">
+      {% for f in form.main_fields %}
+      <div class="{% if f.name == 'description' or f.name == 'options_considered' or f.name == 'decision' %}col-12{% else %}col-md-6{% endif %}">
+        <label class="form-label small muted mb-1" for="{{ f.id_for_label }}">{{ f.label }}</label>
+        {{ f }}
+        {% for e in f.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="form-check mt-3">{{ form.sox_applicable }} <label class="form-check-label" for="{{ form.sox_applicable.id_for_label }}">{{ form.sox_applicable.label }}</label></div>
+    <h2 class="h6 mt-3 mb-1">Possible impact</h2>
+    {% for f in form.impact_fields %}
+    <div class="form-check">{{ f }} <label class="form-check-label" for="{{ f.id_for_label }}">{{ f.label }}</label></div>
+    {% endfor %}
+    <div class="mt-3 d-flex gap-2">
+      <button class="btn btn-primary btn-sm">Save</button>
+      <a class="btn btn-outline-secondary btn-sm" href="{% if item %}{% url 'watch_item' item.entity_id %}{% else %}{% url 'watch_list' %}{% endif %}">Cancel</a>
+    </div>
+  </div>
+</form>
+{% endblock %}

@@ -90,6 +90,7 @@ def load(doc: dict, out=print) -> Initiative:
 
     owner = _person(spec["owner"]["emp_id"], spec["owner"].get("display_name"))
     status = spec.get("status", "proposed")
+    answers = {key: bool((spec.get("oversight") or {}).get(key)) for key in QUESTION_KEYS}
     init = Initiative.create(
         SYSTEM,
         name=spec["name"],
@@ -105,7 +106,8 @@ def load(doc: dict, out=print) -> Initiative:
         baseline_go_live=_date(spec.get("baseline_go_live")) if status != "proposed" else None,
         submitted_at=_at(spec.get("submitted_on")) or timezone.now(),
         accepted_at=_at(spec.get("accepted_on")) if status != "proposed" else None,
-        **{key: bool((spec.get("oversight") or {}).get(key)) for key in QUESTION_KEYS},
+        sox_applicable=bool(spec.get("sox_applicable", answers.get("affects_sox_app", False))),
+        **answers,
     )
     eid = init.entity_id
     for d in spec.get("delegates") or []:
@@ -119,13 +121,16 @@ def load(doc: dict, out=print) -> Initiative:
             forecast_start=_date(ph.get("forecast_start")) or ps, forecast_end=_date(ph.get("forecast_end")) or pe,
             actual_start=_date(ph.get("actual_start")), actual_end=_date(ph.get("actual_end")),
         )
+    key_milestones = {}
     for m in doc.get("milestones") or []:
-        Milestone.create(
+        ms = Milestone.create(
             SYSTEM, initiative_entity=eid, name=m["name"], planned=_date(m.get("planned")),
             forecast=_date(m.get("forecast")) or _date(m.get("planned")), actual=_date(m.get("actual")),
             pct_complete=int(m.get("pct_complete", 0)), status=m.get("status", "planned"),
             is_key=bool(m.get("key", False)), note=m.get("note", ""),
         )
+        if ms.is_key:
+            key_milestones[ms.name] = ms
     for r in doc.get("risks") or []:
         RiskItem.create(
             SYSTEM, initiative_entity=eid, type=r["type"], title=r["title"], rating=r["rating"],
@@ -134,10 +139,18 @@ def load(doc: dict, out=print) -> Initiative:
             visibility=r.get("visibility", Visibility.EXEC),
         )
     for c in doc.get("control_impacts") or []:
+        needed_by = None
+        if c.get("needed_by"):
+            if c["needed_by"] not in key_milestones:
+                raise SystemExit(
+                    f'Control {c["control_id"]}: needed_by "{c["needed_by"]}" is not a key milestone; '
+                    "use the exact name of a milestone with key: true."
+                )
+            needed_by = key_milestones[c["needed_by"]].entity_id
         ControlImpact.create(
             SYSTEM, initiative_entity=eid, control_entity=_control(c).entity_id, impact_type=c["impact_type"],
             compensating_control=c.get("compensating_control", ""), readiness=c.get("readiness", "not_started"),
-            evidence_link=c.get("evidence_link", ""),
+            evidence_link=c.get("evidence_link", ""), needed_by_milestone=needed_by,
         )
     for u in doc.get("updates") or []:
         Update.objects.create(initiative_entity=eid, author_emp_id=owner, posted_at=_at(u["date"]), text=u["text"])

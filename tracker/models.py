@@ -1,6 +1,6 @@
 from django.db import models
 
-from core.versioning import VersionedModel
+from core.versioning import VersionedModel, VersionedQuerySet
 from tracker.lifecycle import STAGE_CHOICES
 
 
@@ -27,12 +27,26 @@ class OversightLevel(models.TextChoices):
     LIGHT = "light", "Light"
 
 
+class InitiativeQuerySet(VersionedQuerySet):
+    def listed(self):
+        """Real initiatives only: excludes watch list items and dropped ones."""
+        return self.exclude(status__in=Initiative.WATCH_STATUSES)
+
+    def watch_items(self):
+        """Current watch list items (still open)."""
+        return self.current().filter(status=Initiative.Status.WATCH)
+
+
 class Initiative(VersionedModel):
     class Status(models.TextChoices):
+        WATCH = "watch", "Watch list"
+        DROPPED = "dropped", "No change needed"
         PROPOSED = "proposed", "Proposed"
         ACTIVE = "active", "Active"
         CLOSED = "closed", "Closed"
         ARCHIVED = "archived", "Archived"
+
+    WATCH_STATUSES = (Status.WATCH, Status.DROPPED)
 
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
@@ -55,12 +69,25 @@ class Initiative(VersionedModel):
     # Oversight level inputs (answered at intake) and Tech Risk's optional override.
     affects_tier01_app = models.BooleanField(default=False)
     affects_sox_app = models.BooleanField(default=False)
+    sox_applicable = models.BooleanField(
+        default=False, help_text="Relevant to SOX: affects a SOX in-scope app or a SOX control"
+    )
     changes_key_controls = models.BooleanField(default=False)
     migrates_regulated_data = models.BooleanField(default=False)
     changes_access_model = models.BooleanField(default=False)
     moves_to_vendor_or_cloud = models.BooleanField(default=False)
     oversight_override = models.CharField(max_length=10, choices=OversightLevel.choices, blank=True)
     oversight_override_reason = models.TextField(blank=True)
+    # Watch list fields.
+    decision = models.CharField(max_length=300, blank=True, help_text="What is being decided")
+    decision_due = models.DateField(null=True, blank=True)
+    key_date = models.DateField(null=True, blank=True)
+    key_date_label = models.CharField(max_length=60, blank=True, help_text="For example, Contract ends")
+    options_considered = models.TextField(blank=True)
+    next_check = models.DateField(null=True, blank=True)
+    outcome_reason = models.TextField(blank=True, help_text="Why no change is needed")
+
+    objects = InitiativeQuerySet.as_manager()
 
     class Meta(VersionedModel.Meta):
         pass
@@ -240,6 +267,9 @@ class ControlImpact(VersionedModel):
     readiness = models.CharField(max_length=16, choices=Readiness.choices, default=Readiness.NOT_STARTED)
     evidence_link = models.URLField(blank=True, max_length=500)
     review_comment = models.TextField(blank=True, help_text="Tech Risk comment when sending back")
+    needed_by_milestone = models.UUIDField(
+        null=True, blank=True, help_text="Key milestone the control must be ready by; blank means go-live"
+    )
     visibility = models.CharField(max_length=16, choices=Visibility.choices, default=Visibility.EXEC)
 
     class Meta(VersionedModel.Meta):

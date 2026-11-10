@@ -17,7 +17,7 @@ Paste this file into the TRAC chat. It moves the initiative lifecycle guidance o
 3. Follow TRAC's own conventions: Tech Risk-only editing, draft until approved, comment box for everyone else, sentence case, US English, no "standard" wording.
 4. Optional: a short overview page linking the seven stages in order, with the principles below.
 5. **A page: "Oversight levels"** (content below). Use TRAC's own guides and wording — no external framework citations.
-6. **Anchors for checklist items.** On each stage page, give every checklist item's guidance its own anchor (e.g. `#item-3`) so the tracker can link the "?" next to an item straight to "what good evidence looks like" for it. Send the anchor pattern back with the page URLs.
+6. **Anchors for checklist items.** On each stage page, give every checklist item its own anchor `item-1`, `item-2`, … numbered from 1 in the same order as the tracker's checklist. The tracker's "Guidance" link next to an item opens `<stage page URL>#item-N`. If an anchor is missing, the link still opens the top of the stage page.
 
 ## Oversight levels (new page)
 

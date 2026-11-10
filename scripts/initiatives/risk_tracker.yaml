@@ -1,0 +1,99 @@
+# The IT Initiative Risk Tracker itself, tracked as an initiative.
+# Load with:  python scripts/load_initiative.py scripts/initiatives/risk_tracker.yaml
+# Lines marked CONFIRM are best estimates; correct them before loading. After loading, edit in the app.
+
+initiative:
+  name: IT Initiative Risk Tracker
+  owner:
+    emp_id: CHANGE_ME          # CONFIRM: your employee ID
+    display_name: CHANGE_ME    # CONFIRM: your name
+  delegates: []
+  sponsor: Head of Tech Risk
+  status: active
+  current_phase: Build
+  description: >
+    Web application for Tech Risk to track major IT initiatives that affect risk and controls: status,
+    timelines, lifecycle checklists and sign-offs, snapshots for leadership, and audit history.
+  why_it_matters: >
+    Gives leadership and Internal Audit one consistent, versioned record of initiative risk and control
+    readiness, replacing ad hoc status decks.
+  business_driver: Earlier visibility of control risk in the IT book of work.
+  expected_systems: Initiative tracker (Django, Postgres) on the internal developer platform; TRAC for guidance
+  submitted_on: 2026-11-02      # CONFIRM
+  accepted_on: 2026-11-09
+  baseline_go_live: 2026-12-18  # CONFIRM: production go-live target
+  target_go_live: 2026-12-18    # CONFIRM
+  sox_applicable: true
+  oversight:                    # CONFIRM each answer
+    affects_tier01_app: false
+    affects_sox_app: false
+    changes_key_controls: false
+    migrates_regulated_data: false
+    changes_access_model: false
+    moves_to_vendor_or_cloud: false
+
+phases:                         # CONFIRM dates
+  - {name: Design,    stage: 1, planned_start: 2026-11-02, planned_end: 2026-11-04, forecast_start: 2026-11-02, forecast_end: 2026-11-04}
+  - {name: Build,     stage: 2, planned_start: 2026-11-04, planned_end: 2026-11-13, forecast_start: 2026-11-04, forecast_end: 2026-11-13}
+  - {name: Test,      stage: 3, planned_start: 2026-11-16, planned_end: 2026-12-11, forecast_start: 2026-11-16, forecast_end: 2026-12-11}
+  - {name: Cutover,   stage: 4, planned_start: 2026-12-14, planned_end: 2026-12-18, forecast_start: 2026-12-14, forecast_end: 2026-12-18}
+  - {name: Hypercare, stage: 5, planned_start: 2026-12-21, planned_end: 2027-01-29, forecast_start: 2026-12-21, forecast_end: 2027-01-29}
+
+milestones:                     # CONFIRM dates
+  - {name: Clickable demo approved,                  planned: 2026-11-04, actual: 2026-11-04, pct_complete: 100, status: done,     key: true}
+  - {name: v1 built,                                 planned: 2026-11-05, actual: 2026-11-05, pct_complete: 100, status: done,     key: false}
+  - {name: Test environment live,                    planned: 2026-11-13, forecast: 2026-11-13, pct_complete: 50, status: on_track, key: true}
+  - {name: Stakeholder demo,                         planned: 2026-11-20, forecast: 2026-11-20, pct_complete: 0,  status: planned,  key: true}
+  - {name: Gate requirements approved by Head of Tech Risk, planned: 2026-11-30, forecast: 2026-11-30, pct_complete: 0, status: planned, key: true}
+  - {name: SSO entitlements wired,                   planned: 2026-12-11, forecast: 2026-12-11, pct_complete: 0,  status: planned,  key: true}
+  - {name: Production go-live,                       planned: 2026-12-18, forecast: 2026-12-18, pct_complete: 0,  status: planned,  key: true}
+
+risks:
+  - type: risk
+    title: Single maintainer; no backup for support or changes
+    rating: M
+    owner: Head of Tech Risk
+    target_date: 2027-01-29
+    status: open
+    source: tech_risk
+    visibility: exec
+    mitigation: Runbook and maintainer notes kept current; most settings change in the app without code.
+  - type: dependency
+    title: SSO entitlements to be wired by a teammate before production
+    rating: M
+    owner: CHANGE_ME
+    target_date: 2026-12-11
+    status: open
+    source: tech_risk
+    visibility: exec
+    mitigation: Test environment runs in open mode until roles are mapped to entitlement groups.
+  - type: dependency
+    title: Postgres backup and restore not yet confirmed with the platform team
+    rating: M
+    owner: CHANGE_ME
+    target_date: 2026-11-30
+    status: open
+    source: tech_risk
+    visibility: owner
+    mitigation: Confirm backup schedule, retention and a test restore before loading real data.
+  - type: risk
+    title: Owners may not adopt regular check-ins
+    rating: L
+    owner: CHANGE_ME
+    target_date: 2026-12-18
+    status: open
+    source: tech_risk
+    visibility: owner
+    mitigation: Start Tech Risk–only (owner access off); show value to leadership before onboarding owners.
+
+updates:
+  - date: 2026-11-09
+    text: v1 built with lifecycle sign-offs, snapshots, SOX filter and module switches. Next, test environment and a stakeholder demo.
+
+tech_risk:
+  author_emp_id: CHANGE_ME      # CONFIRM: your employee ID
+  author_name: CHANGE_ME
+  highlights:
+    - Stakeholder demo planned on the test environment to secure buy-in
+    - Gate requirements grid awaiting Head of Tech Risk approval
+    - SSO entitlements to be wired before production

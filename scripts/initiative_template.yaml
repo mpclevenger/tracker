@@ -25,6 +25,7 @@ initiative:
   accepted_on: 2026-07-14     # omit when status is proposed
   baseline_go_live: 2026-12-15   # target go-live at acceptance; slip is measured from here
   target_go_live: 2027-01-19     # current target
+  sox_applicable: true           # optional: show to auditors as SOX-relevant; defaults to oversight.affects_sox_app
   # Oversight level inputs (true/false). Tech Risk can override the level in the app.
   oversight:
     affects_tier01_app: true
@@ -83,6 +84,7 @@ risks:
 # control_id must exist in the control library (Workbench → Admin → upload), or give name/framework/
 # control_owner here and the loader will add it.
 # impact_type: new | modified | retired | interim.  readiness: not_started | in_progress | submitted | ready
+# needed_by (optional): exact name of a key milestone the control must be ready by; omit for go-live.
 control_impacts:
   - control_id: ITGC-LA-02
     name: Quarterly user access review
@@ -98,6 +100,7 @@ control_impacts:
     control_owner: IAM
     impact_type: modified
     readiness: not_started
+    needed_by: Certification dry run (UAT exit)
   - control_id: ITGC-LA-01
     name: Joiner / mover / leaver provisioning approval
     framework: SOX ITGC

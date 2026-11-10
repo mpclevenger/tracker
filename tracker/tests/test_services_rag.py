@@ -194,6 +194,7 @@ def test_go_live_60d_control_readiness(days, readiness, expected):
     assert ev.days_to_go_live == days
     if expected == "red":
         assert ev.chip == f"Control not ready, go-live in {days}d"
+        assert ev.rule.endswith("(Go-live)")
 
 
 @pytest.mark.parametrize("readiness", ["in_progress", "submitted", "sent_back"])
@@ -500,3 +501,51 @@ def test_set_override_records_curation_event():
 
 def bundle_last_curated(init):
     return load_bundle(Initiative.objects.get_current(init.entity_id)).last_curated
+
+
+def _linked(readiness, ms_days, go_live_days=200, **ms):
+    init = active_initiative(target_go_live=d(go_live_days))
+    m = add_milestone(init, planned=d(ms_days), forecast=d(ms_days), name="Test exit", **ms)
+    add_impact(init, readiness=readiness, needed_by=m)
+    return init
+
+
+@pytest.mark.parametrize(
+    "days,expected", [(60, "red"), (61, "green")],
+)
+def test_milestone_linked_control_uses_its_own_due_date(days, expected):
+    ev = derive(_linked("not_started", days))
+    assert ev.derived == expected
+    if expected == "red":
+        assert ev.chip == f"Control not ready, due in {days}d"
+        assert ev.rule.endswith("(Test exit)")
+
+
+def test_milestone_linked_control_in_progress_amber_before_go_live():
+    ev = derive(_linked("submitted", 90))
+    assert (ev.derived, ev.chip) == ("amber", "Control in progress, due in 90d")
+
+
+def test_milestone_linked_control_past_due_wording():
+    assert derive(_linked("not_started", -3, status="slipped")).chip == "Control not ready, past due"
+    assert derive(_linked("in_progress", -3)).chip == "Control in progress, past due"
+
+
+def test_go_live_passed_wording_kept():
+    init = active_initiative(target_go_live=d(-2))
+    add_impact(init, readiness="not_started")
+    assert derive(init).chip == "Control not ready, go-live passed"
+
+
+def test_ready_milestone_linked_control_does_not_fire():
+    assert derive(_linked("ready", 5)).derived == "green"
+
+
+def test_mixed_due_dates_chip_uses_most_urgent():
+    init = active_initiative(target_go_live=d(50))
+    m = add_milestone(init, planned=d(20), forecast=d(20), name="Test exit")
+    add_impact(init, readiness="not_started")
+    add_impact(init, readiness="not_started", needed_by=m)
+    ev = derive(init)
+    assert ev.chip == "Control not ready, due in 20d"
+    assert "(Test exit)" in ev.rule and "(Go-live)" in ev.rule

@@ -3,6 +3,7 @@
 {% block title %}Workbench · IT Initiative Risk Tracker{% endblock %}
 {% block content %}
 {% include "tracker/partials/wb_tabs.html" %}
+<div class="mb-2">{% include "tracker/partials/scope_toggle.html" %}</div>
 {% for group, rows in groups %}
 <h2 class="sect">{{ group|group_label }} <span class="small muted">· {{ rows|length }}</span></h2>
 <table class="table table-sm align-middle">
@@ -11,7 +12,7 @@
   {% for r in rows %}
   {% with init=r.bundle.initiative %}
   <tr>
-    <td><a href="{% url 'initiative' init.entity_id %}">{{ init.name }}</a></td>
+    <td><a href="{% if r.watch %}{% url 'watch_item' init.entity_id %}{% else %}{% url 'initiative' init.entity_id %}{% endif %}">{{ init.name }}</a></td>
     <td><span class="pill {{ r.severity }}" style="padding:0 5px">&nbsp;</span> {{ r.what }}</td>
     <td class="small">{% if r.since %}{{ r.since|date:"M j, Y" }}{% else %}—{% endif %}</td>
     <td class="small">{{ init.owner_emp_id|person }}</td>
@@ -29,6 +30,8 @@
           <button type="submit" class="btn btn-sm btn-outline-secondary">Return</button>
         </form>
       </div>
+      {% elif r.watch %}
+      <a href="{% url 'watch_item' init.entity_id %}">Review →</a>
       {% elif r.action == "review" %}
       <a href="{% url 'initiative' init.entity_id %}?tab={{ r.tab }}">Open →</a>
       {% elif r.action == "remind" %}

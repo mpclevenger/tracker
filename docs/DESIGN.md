@@ -116,3 +116,26 @@ The full feature set is the end state; nothing is removed. Workbench â€º Admin â
 Meetings, Audit access and Read-only links on or off (versioned, change note required, all on by default).
 Off hides the nav and returns 404 for the module's pages; data is kept and returns when switched back on.
 Tech Risk sees a banner listing what is off. Day-to-day operation is in `docs/RUNBOOK.md`.
+
+## Controls needed by (Nov 9)
+Tasks stay in the owner's project plan; the tracker holds key milestones only. Each affected control has an
+optional "Needed by" key milestone (blank = go-live). The control readiness rule measures days to that date,
+so a control due at test exit warns before go-live. The initiative timeline has a Controls lane (square per
+control at its due date, colored by readiness, tooltip and link to the Risks tab). The portfolio timeline is
+unchanged; the Next 90 days squares remain the exec summary of controls.
+
+## SOX applicable (Nov 9)
+Each initiative has a SOX applicable yes/no, separate from the oversight question "SOX in-scope application
+affected" (it defaults from that answer at intake; Tech Risk changes it in the oversight modal). Exec summary,
+Workbench triage and Audit page filter with "All initiatives | SOX applicable"; auditors default to SOX
+applicable, everyone else to All. Snapshots freeze the flag and filter on it.
+
+## Watch list (Nov 10)
+Early-stage, unconfirmed items (e.g. a contract ending, stay or move) are initiatives with status "watch":
+name, owner, decision, decision due, optional key date with label, options considered, SOX applicable, the
+six oversight questions as possible answers (shown as "likely oversight"), next check. No lifecycle, plan or
+RAG; warnings only (decision due within 30 days or overdue, key date within 90 days with no decision, check
+due). Tech Risk adds and edits them. "Confirm as initiative" moves the item into the intake queue with its
+details; "No change needed" closes it with a reason. Shown on the Watch list page, a Workbench group, and a
+short "On the watch list" block on the exec summary (frozen into snapshots). Has its own module switch.
+Watch and dropped items are excluded from every initiative listing via `Initiative.objects.listed()`.

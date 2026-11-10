@@ -6,15 +6,17 @@
 {% if shared %}
 <div class="banner snap">Read-only share link · {% if snapshot %}snapshot <b>"{{ snapshot.label }}"</b> taken {{ snapshot.taken_at|date:"M j, Y H:i" }}{% else %}live data{% endif %}.</div>
 {% elif snapshot %}
-<div class="banner snap">{% if as_of %}As of {{ as_of|short_date }}: showing {% else %}Showing {% endif %}<b>snapshot "{{ snapshot.label }}"</b> taken {{ snapshot.taken_at|date:"M j, Y H:i" }} by {{ snapshot.taken_by|person }} <a href="{% url 'exec_summary' %}">Back to live</a></div>
+<div class="banner snap">{% if as_of %}As of {{ as_of|short_date }}: showing {% else %}Showing {% endif %}<b>snapshot "{{ snapshot.label }}"</b> taken {{ snapshot.taken_at|date:"M j, Y H:i" }} by {{ snapshot.taken_by|person }} <a href="{% url 'exec_summary' %}?scope={{ scope }}">Back to live</a></div>
 {% else %}{{ block.super }}{% endif %}
 {% endblock %}
 
 {% block content %}
 <div class="d-flex align-items-center gap-3 flex-wrap mb-3">
   <h1 class="m-0 flex-grow-1">Exec summary</h1>
+  {% include "tracker/partials/scope_toggle.html" %}
   {% if not shared %}
   <form method="get" action="{% url 'exec_summary' %}" class="d-flex align-items-center gap-2 m-0">
+    <input type="hidden" name="scope" value="{{ scope }}">
     <label class="small muted" for="view-select">View</label>
     <select id="view-select" name="snapshot" class="form-select form-select-sm w-auto">
       <option value="">Live</option>
@@ -87,6 +89,23 @@
   {% endfor %}
   </tbody>
 </table>
+{% endif %}
+
+{% if ctx.watch %}
+<h2 class="sect" title="Early-stage items not yet confirmed as initiatives">On the watch list <span class="small muted">({{ ctx.watch_total }})</span></h2>
+<table class="table table-sm bg-white">
+  <tbody>
+  {% for w in ctx.watch %}
+    <tr>
+      <td>{{ w.name }}</td>
+      <td class="small">{{ w.decision|default:"—" }}</td>
+      <td class="small text-nowrap">{% if w.decision_due %}Decision by {{ w.decision_due|short_date }}{% endif %}</td>
+      <td class="small text-nowrap">{% if w.key_date %}{{ w.key_date_label|default:"Key date" }} {{ w.key_date|short_date }}{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% if not shared %}<p class="small mb-0"><a href="{% url 'watch_list' %}?scope={{ scope }}">View all</a></p>{% endif %}
 {% endif %}
 
 {% if ctx.proposed and not viewer.is_senior_management %}

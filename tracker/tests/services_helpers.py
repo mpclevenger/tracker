@@ -118,7 +118,7 @@ def add_control(control_id=None) -> Control:
     return Control.create(AUTH, control_id=control_id or f"CTL-{n}", name=f"Control {n}")
 
 
-def add_impact(init, readiness="ready", control=None, impact_type="modified") -> ControlImpact:
+def add_impact(init, readiness="ready", control=None, impact_type="modified", needed_by=None) -> ControlImpact:
     control = control or add_control()
     return ControlImpact.create(
         AUTH,
@@ -126,6 +126,7 @@ def add_impact(init, readiness="ready", control=None, impact_type="modified") ->
         control_entity=control.entity_id,
         impact_type=impact_type,
         readiness=readiness,
+        needed_by_milestone=needed_by.entity_id if needed_by else None,
     )
 
 

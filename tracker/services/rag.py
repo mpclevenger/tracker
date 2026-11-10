@@ -35,8 +35,32 @@ def _fmt(d):
     return f"{d:%b} {d.day}, {d.year}"
 
 
-def _control_refs(bundle, impacts):
-    return ", ".join(bundle.control_for(i).control_id for i in impacts if bundle.control_for(i))
+def _control_rules(bundle, t, bump):
+    """Fire the control rules by days to each control's own due date (go-live unless linked)."""
+    groups = {"red": [], "amber": []}
+    for i in bundle.impacts:
+        label, due = bundle.control_due(i)
+        days = clock.days_until(due)
+        if days is None:
+            continue
+        item = (days, i, label, bundle.needed_by_for(i) is None)
+        if i.readiness == ControlImpact.Readiness.NOT_STARTED and days <= t["red_go_live_window_days"]:
+            groups["red"].append(item)
+        elif i.readiness in IN_PROGRESS_STATES and days <= t["amber_go_live_window_days"]:
+            groups["amber"].append(item)
+    for level, text, name in (("red", "Control not ready", Rag.RED), ("amber", "Control in progress", Rag.AMBER)):
+        items = sorted(groups[level], key=lambda x: x[0])
+        if not items:
+            continue
+        days, _i, _label, is_go_live = items[0]
+        if is_go_live:
+            when = f"go-live in {days}d" if days >= 0 else "go-live passed"
+        else:
+            when = f"due in {days}d" if days >= 0 else "past due"
+        detail = "; ".join(
+            f"{c.control_id} ({label})" for _d, i, label, _g in items if (c := bundle.control_for(i))
+        )
+        bump(name, f"{text}, {when}", detail)
 
 
 def thresholds() -> dict:
@@ -115,16 +139,8 @@ def derive(bundle: Bundle, t: dict | None = None) -> Evaluation:
             else:
                 bump(Rag.AMBER, "High risk open", r.title)
 
-    to_go = clock.days_until(init.target_go_live)
-    ev.days_to_go_live = to_go
-    if to_go is not None:
-        when = f"go-live in {to_go}d" if to_go >= 0 else "go-live passed"
-        not_started = [i for i in bundle.impacts if i.readiness == ControlImpact.Readiness.NOT_STARTED]
-        underway = [i for i in bundle.impacts if i.readiness in IN_PROGRESS_STATES]
-        if to_go <= t["red_go_live_window_days"] and not_started:
-            bump(Rag.RED, f"Control not ready, {when}", _control_refs(bundle, not_started))
-        if to_go <= t["amber_go_live_window_days"] and underway:
-            bump(Rag.AMBER, f"Control in progress, {when}", _control_refs(bundle, underway))
+    ev.days_to_go_live = clock.days_until(init.target_go_live)
+    _control_rules(bundle, t, bump)
 
     ev.stale_days = stale_days(bundle)
     if ev.stale_days is not None:

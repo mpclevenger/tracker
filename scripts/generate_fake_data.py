@@ -93,6 +93,30 @@ def seed_meeting(stdout=print):
     stdout("Fake meeting generated.")
 
 
+def seed_watch(stdout=print):
+    """Add one fictional watch list item; skipped if the name already exists."""
+    name = "Expense management platform renewal"
+    if Initiative.objects.current().filter(name=name).exists():
+        return
+    today = clock.today()
+    Initiative.create(
+        SYSTEM,
+        name=name,
+        status=Initiative.Status.WATCH,
+        owner_emp_id="E00101",
+        decision="Renew with current vendor or move to a new platform",
+        decision_due=today + timedelta(days=60),
+        key_date_label="Contract ends",
+        key_date=today + timedelta(days=150),
+        options_considered="Renew for 3 years; migrate to the ERP module",
+        sox_applicable=True,
+        affects_sox_app=True,
+        moves_to_vendor_or_cloud=True,
+        next_check=today + timedelta(days=14),
+    )
+    stdout("Fake watch item generated.")
+
+
 def seed(stdout=print):
     """Idempotent: safe to run more than once."""
     if True:
@@ -116,6 +140,7 @@ def seed(stdout=print):
         if Initiative.objects.current().exists():
             stdout("Initiatives already present; skipping.")
             seed_meeting(stdout)
+            seed_watch(stdout)
             return
 
         today = date.today()
@@ -141,6 +166,7 @@ def seed(stdout=print):
             accepted_at=T("2026-07-14"),
             affects_tier01_app=True,
             affects_sox_app=True,
+            sox_applicable=True,
             changes_key_controls=True,
             changes_access_model=True,
         )
@@ -160,13 +186,14 @@ def seed(stdout=print):
                 actual_start=D(fs) if D(fs) <= today else None, actual_end=D(fe) if D(fe) < today else None,
             )
 
+        milestones = {}
         for name, p, f, a, pct, st, key, note in [
             ("Connector design sign-off", "2026-08-15", "2026-08-20", "2026-08-20", 100, "done", True, ""),
             ("Wave 1 connectors built", "2026-10-31", "2026-11-20", None, 85, "slipped", True, "ERP and HR connector defects"),
             ("Certification dry run (UAT exit)", "2026-12-05", "2027-01-05", None, 20, "slipped", True, ""),
             ("Go-live (Wave 1)", "2026-12-15", "2027-01-19", None, 0, "slipped", True, ""),
         ]:
-            Milestone.create(
+            milestones[name] = Milestone.create(
                 SYSTEM, initiative_entity=eid, name=name, planned=D(p), forecast=D(f), actual=D(a) if a else None,
                 pct_complete=pct, status=st, is_key=key, note=note,
             )
@@ -188,6 +215,7 @@ def seed(stdout=print):
                 status=st, mitigation=mit, source=src, visibility=vis,
             )
 
+        needed_by = {"ITGC-CM-01": "Connector design sign-off", "ITGC-LA-04": "Certification dry run (UAT exit)"}
         for cid, itype, comp, ready, ev in [
             ("ITGC-LA-02", "modified", "Manual Q4 user access review runs in parallel", "submitted",
              "https://evidence.example/sailpoint/uar"),
@@ -195,9 +223,11 @@ def seed(stdout=print):
             ("ITGC-LA-01", "new", "Manual provisioning approvals continue until cutover", "in_progress", ""),
             ("ITGC-CM-01", "modified", "", "ready", "https://evidence.example/sailpoint/cm"),
         ]:
+            linked = milestones.get(needed_by.get(cid))
             ControlImpact.create(
                 SYSTEM, initiative_entity=eid, control_entity=controls[cid].entity_id, impact_type=itype,
                 compensating_control=comp, readiness=ready, evidence_link=ev,
+                needed_by_milestone=linked.entity_id if linked else None,
             )
 
         for order, (t, text, vis) in enumerate([
@@ -257,6 +287,7 @@ def seed(stdout=print):
 
         rag.recompute(init)
         seed_meeting(stdout)
+        seed_watch(stdout)
         stdout("Fake data generated: SailPoint Onboarding.")
 
 

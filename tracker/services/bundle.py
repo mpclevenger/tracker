@@ -85,6 +85,21 @@ class Bundle:
     def control_for(self, impact):
         return self.controls_by_entity.get(impact.control_entity)
 
+    def needed_by_for(self, impact):
+        """The current key milestone a control is linked to, else None (meaning go-live)."""
+        if not impact.needed_by_milestone:
+            return None
+        return next(
+            (m for m in self.milestones if m.entity_id == impact.needed_by_milestone and m.is_key), None
+        )
+
+    def control_due(self, impact):
+        """(label, date) a control must be ready by: its key milestone, else go-live."""
+        m = self.needed_by_for(impact)
+        if m is None:
+            return "Go-live", self.initiative.target_go_live
+        return m.name, m.actual or m.forecast or m.planned
+
 
 def load_bundle(initiative: Initiative, at: datetime | None = None) -> Bundle:
     eid = initiative.entity_id

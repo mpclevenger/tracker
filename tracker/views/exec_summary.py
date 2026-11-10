@@ -14,6 +14,7 @@ from core.models import Role
 from tracker.models import Snapshot
 from tracker.services import exec_summary as exec_svc
 from tracker.services import timeline
+from tracker.views.common import resolve_scope, scope_context
 
 
 def home(request):
@@ -37,7 +38,9 @@ def _parse_as_of(raw):
 
 
 def _render(request, viewer, snapshot, as_of, shared=False, share_token=""):
-    ctx = exec_svc.build(viewer, snapshot, followups=request.modules["meetings"])
+    scope = resolve_scope(request, viewer, default="all" if shared else None)
+    ctx = exec_svc.build(viewer, snapshot, followups=request.modules["meetings"], scope=scope,
+                         watch_list=request.modules["watch_list"])
     timeline_svg = ""
     if ctx.mode == "live":
         timeline_svg = timeline.portfolio_svg(ctx.timeline_bundles, ctx.evaluations)
@@ -57,6 +60,7 @@ def _render(request, viewer, snapshot, as_of, shared=False, share_token=""):
         "snapshots": [] if shared else list(Snapshot.objects.order_by("-taken_at")),
         "timeline_svg": timeline_svg,
         "share_url": share_url,
+        **scope_context(request, scope),
         "n_flagged": len(ctx.attention),
         "n_active": ctx.counts.get("active", 0),
         "mon": ctx.comparison_label.split()[0] if ctx.comparison_snapshot else "",

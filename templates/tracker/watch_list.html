@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Watch list · IT Initiative Risk Tracker{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center gap-3 flex-wrap mb-2">
+  <h1 class="m-0 flex-grow-1">Watch list</h1>
+  {% include "tracker/partials/scope_toggle.html" %}
+  {% if actor.is_tech_risk %}<a class="btn btn-primary btn-sm" href="{% url 'watch_add' %}">Add watch item</a>{% endif %}
+</div>
+<p class="muted">Early-stage items not yet confirmed as initiatives.</p>
+<table class="table table-sm align-middle bg-white">
+  <thead><tr><th>Name</th><th>Decision</th><th>Decision due</th><th>Key date</th><th>Owner</th><th>SOX</th><th>Warnings</th><th>Next check</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr>
+    <td><a href="{% url 'watch_item' r.item.entity_id %}">{{ r.item.name }}</a></td>
+    <td class="small">{{ r.item.decision|default:"—" }}</td>
+    <td class="small text-nowrap">{{ r.item.decision_due|short_date }}</td>
+    <td class="small text-nowrap">{% if r.item.key_date %}{{ r.item.key_date_label|default:"Key date" }}: {{ r.item.key_date|short_date }}{% else %}—{% endif %}</td>
+    <td class="small">{{ r.item.owner_emp_id|person }}</td>
+    <td class="small">{% if r.item.sox_applicable %}Yes{% else %}—{% endif %}</td>
+    <td>{% for c in r.chips %}<span class="pill {% if 'overdue' in c %}red{% else %}amber{% endif %}">{{ c }}</span> {% empty %}<span class="muted">—</span>{% endfor %}</td>
+    <td class="small text-nowrap">{{ r.item.next_check|short_date }}</td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="8" class="muted">Nothing on the watch list</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<details class="mt-4">
+  <summary>Dropped / Confirmed history ({{ history|length }})</summary>
+  <table class="table table-sm bg-white mt-2">
+    <thead><tr><th>Name</th><th>Outcome</th><th>Date</th></tr></thead>
+    <tbody>
+    {% for h in history %}
+      <tr>
+        <td><a href="{% if h.item.status == 'dropped' %}{% url 'watch_item' h.item.entity_id %}{% else %}{% url 'initiative' h.item.entity_id %}{% endif %}">{{ h.item.name }}</a></td>
+        <td class="small">{{ h.outcome }}</td>
+        <td class="small text-nowrap">{{ h.on|date:"M j, Y" }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="3" class="muted">None yet</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</details>
+{% endblock %}

@@ -6,9 +6,16 @@ from html import escape
 from core import clock
 from tracker.lifecycle import color as stage_color
 from tracker.services.lifecycle import stage_infos
-from tracker.models import Initiative, Milestone, Rag
+from tracker.models import ControlImpact, Initiative, Milestone, Rag
 
 RAG_COLOR = {Rag.GREEN: "#1a7f37", Rag.AMBER: "#bf8700", Rag.RED: "#cf222e"}
+CTL_COLOR = {
+    ControlImpact.Readiness.READY: RAG_COLOR[Rag.GREEN],
+    ControlImpact.Readiness.IN_PROGRESS: RAG_COLOR[Rag.AMBER],
+    ControlImpact.Readiness.SUBMITTED: RAG_COLOR[Rag.AMBER],
+    ControlImpact.Readiness.SENT_BACK: RAG_COLOR[Rag.AMBER],
+    ControlImpact.Readiness.NOT_STARTED: RAG_COLOR[Rag.RED],
+}
 MS_COLOR = {
     Milestone.Status.DONE: "#1a7f37",
     Milestone.Status.SLIPPED: "#cf222e",
@@ -78,7 +85,8 @@ def legend() -> str:
         '<span><span class="swatch" style="border:1.5px solid #0969da;background:none"></span>planned (outline)</span>'
         '<span><span class="swatch" style="background:#0969da"></span>forecast/actual (filled)</span>'
         '<span>◆ key milestone: <span style="color:#1a7f37">done</span> · <span style="color:#0969da">on track</span>'
-        ' · <span style="color:#cf222e">slipped</span> (hollow = original plan)</span></div>'
+        ' · <span style="color:#cf222e">slipped</span> (hollow = original plan)</span>'
+        '<span>■ control, colored by readiness</span></div>'
     )
 
 
@@ -154,8 +162,28 @@ def portfolio_svg(bundles, evaluations: dict, start: date | None = None, months:
     return "".join(out) + legend()
 
 
-def initiative_svg(b) -> str:
-    """Scaled to the initiative ±1 month; one lane per phase (planned above, forecast/actual below)."""
+def _control_marks(b, sc, layers):
+    """([(x, stack level, color, tooltip)], lane height) for controls with a due date."""
+    lo, hi = sc.start, _month_start(sc.start, sc.months)
+    marks, stacks = [], {}
+    impacts = [i for i in b.impacts if layers is None or i.visibility in layers]
+    for i in impacts:
+        c = b.control_for(i)
+        label, due = b.control_due(i)
+        if due is None:
+            continue
+        x = sc.x(min(max(due, lo), hi))
+        level = stacks[x] = stacks.get(x, -1) + 1
+        who = f"{c.control_id} {c.name}" if c else "Unknown control"
+        tip = f"{who} · {i.get_readiness_display()} · needed by {label}, {_d(due)}"
+        marks.append((x, level, CTL_COLOR[i.readiness], tip))
+    if not marks:
+        return [], 0
+    return marks, 30 + max(level for _x, level, _c, _t in marks) * 14
+
+
+def initiative_svg(b, layers=None) -> str:
+    """Scaled to the initiative ±1 month; one lane per phase, then controls by due date (`layers` filters them)."""
     dates = [clock.today()]
     for ph in b.phases:
         dates += [d for d in _phase_dates(ph) if d]
@@ -169,7 +197,8 @@ def initiative_svg(b) -> str:
     ms = sorted([m for m in b.milestones if m.actual or m.forecast or m.planned],
                 key=lambda m: m.actual or m.forecast or m.planned)
     ms_h = 90 if ms else 0
-    H = top + len(b.phases) * row_h + ms_h
+    ctl, ctl_h = _control_marks(b, sc, layers)
+    H = top + len(b.phases) * row_h + ctl_h + ms_h
     out = [f'<svg viewBox="0 0 {W} {H+20}" width="100%">', sc.axis(top, H - top),
            sc.today_line(top, H)]
 
@@ -200,8 +229,19 @@ def initiative_svg(b) -> str:
             out.append(f'<rect x="{f1:.1f}" y="{y+bar_h+6}" width="{max(2.0,f2-f1):.1f}" height="{bar_h}" fill="{st.color}" opacity=".85" rx="3"/>')
             out.append(label(f1, f2, y + bar_h + 6, txt, "#cf222e" if slip > 0 else "#444"))
 
-    if ms:
+    if ctl:
         y = top + len(b.phases) * row_h + 18
+        out.append(f'<text x="4" y="{y+6}" font-size="12" font-weight="600" fill="#444">Controls</text>'
+                   f'<line x1="{left}" y1="{y+2}" x2="{W-20}" y2="{y+2}" stroke="#ccc"/>')
+        for cx, level, color, tip in ctl:
+            cy = y + 10 + level * 14
+            out.append(
+                f'<a href="?tab=risks"><rect x="{cx-5:.1f}" y="{cy}" width="11" height="11" fill="{color}" stroke="#fff">'
+                f'<title>{escape(tip)}</title></rect></a>'
+            )
+
+    if ms:
+        y = top + len(b.phases) * row_h + ctl_h + 18
         out.append(f'<text x="4" y="{y+6}" font-size="12" font-weight="600" fill="#444">Key milestones</text>'
                    f'<line x1="{left}" y1="{y+2}" x2="{W-20}" y2="{y+2}" stroke="#ccc"/>')
         last_x = [-1e9, -1e9, -1e9]

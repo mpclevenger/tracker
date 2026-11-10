@@ -1,0 +1,1 @@
+<div class="scope-toggle small" title="Filter by SOX relevance">{% for l in scope_links %}<a href="{{ l.url }}" class="{% if l.active %}on{% endif %}"{% if l.active %} aria-current="true"{% endif %}>{{ l.label }}</a>{% endfor %}</div>

@@ -86,11 +86,14 @@ def _tab_context(request, tab, initiative, bundle, ev, layers):
             "visibility_choices": Visibility.choices,
         })
     elif tab == "plan":
-        ctx["timeline_svg"] = timeline.initiative_svg(bundle)
+        ctx["timeline_svg"] = timeline.initiative_svg(bundle, layers)
     elif tab == "risks":
         ctx.update({
             "risks": [r for r in bundle.risks if r.visibility in layers],
-            "impact_rows": [{"impact": i, "control": bundle.control_for(i)} for i in bundle.impacts if i.visibility in layers],
+            "impact_rows": [
+                {"impact": i, "control": bundle.control_for(i), "due": bundle.control_due(i)}
+                for i in bundle.impacts if i.visibility in layers
+            ],
             "visibility_choices": Visibility.choices,
         })
     elif tab == "lifecycle":
@@ -260,8 +263,9 @@ def overlay_move(request, entity_id, item_entity, direction):
     return _done(request, entity_id)
 
 
-def _oversight_ctx(initiative, answers, override, reason, error=""):
+def _oversight_ctx(initiative, answers, override, reason, error="", sox_applicable=None):
     return {
+        "sox_applicable": initiative.sox_applicable if sox_applicable is None else sox_applicable,
         "initiative": initiative,
         "eid": initiative.entity_id,
         "questions": [(key, label, bool(answers.get(key))) for key, label in oversight_questions()],
@@ -287,13 +291,14 @@ def oversight_modal(request, entity_id):
     answers = {key: f"q_{key}" in request.POST for key in QUESTION_KEYS}
     override = request.POST.get("override", "")
     reason = request.POST.get("reason", "")
+    sox = "sox_applicable" in request.POST
     try:
         if override and override not in OversightLevel.values:
             raise ValueError("Select Enhanced, Standard or Light.")
-        checkin.set_oversight(initiative, request.actor.emp_id, answers, override, reason)
+        checkin.set_oversight(initiative, request.actor.emp_id, answers, override, reason, sox_applicable=sox)
     except ValueError as exc:
         return render(request, "tracker/partials/oversight_modal.html",
-                      _oversight_ctx(initiative, answers, override, reason, str(exc)))
+                      _oversight_ctx(initiative, answers, override, reason, str(exc), sox))
     return HttpResponse(status=204, headers={"HX-Refresh": "true"})
 
 

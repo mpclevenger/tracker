@@ -7,11 +7,24 @@ from django.conf import settings
 from core import clock
 from meetings import services as meetings_services
 from tracker.models import ControlImpact, Initiative, RAG_ORDER, RiskItem, Visibility
-from tracker.services import checkin, lifecycle, rag, snapshots
+from tracker.services import checkin, lifecycle, rag, snapshots, watch
 from tracker.services.bundle import Bundle, load_bundles
 
-GROUPS = ["Decide", "Confirm", "Review", "Chase"]
-GROUP_LABELS = {"Decide": "Intake decisions", "Confirm": "Risks to confirm", "Review": "Reviews due", "Chase": "Overdue"}
+GROUPS = ["Decide", "Confirm", "Review", "Chase", "Watch"]
+GROUP_LABELS = {"Decide": "Intake decisions", "Confirm": "Risks to confirm", "Review": "Reviews due", "Chase": "Overdue",
+                "Watch": "Watch list"}
+
+
+@dataclass
+class WatchRef:
+    """Stands in for a bundle on watch list rows."""
+
+    initiative: Initiative
+    last_curated: object = None
+
+    @property
+    def entity_id(self):
+        return self.initiative.entity_id
 
 
 @dataclass
@@ -23,20 +36,25 @@ class Row:
     action: str = "curate"  # curate | decide | review | remind
     tab: str = "overview"  # initiative page tab the row opens
     reminder: str = ""  # prefilled reminder text for "remind" rows
+    watch: bool = False  # watch list row: links to the watch item page
 
 
-def triage(followups: bool = True) -> tuple[dict, list]:
-    """Returns ({group: [Row]}, [quiet bundles]); followups=False drops follow-up rows."""
-    rows = {g: [] for g in GROUPS}
+def triage(followups: bool = True, scope: str = "all", watch_list: bool = True) -> tuple[dict, list]:
+    """Returns ({group: [Row]}, [quiet bundles]); followups=False drops follow-up rows; scope="sox" keeps SOX applicable ones; watch_list=False drops watch rows."""
+    rows = {g: [] for g in GROUPS if g != "Watch"}  # "Watch" is added only when it has rows
     t = rag.thresholds()
     snap = snapshots.last_snapshot()
     snap_rows = snapshots.rows_by_entity(snap) if snap else {}
     guidance = lifecycle.current_guidance()
 
-    for b in load_bundles(Initiative.objects.current().filter(status=Initiative.Status.PROPOSED)):
+    current = Initiative.objects.current().listed()
+    if scope == "sox":
+        current = current.filter(sox_applicable=True)
+
+    for b in load_bundles(current.filter(status=Initiative.Status.PROPOSED)):
         rows["Decide"].append(Row(b, "Intake submitted", b.initiative.submitted_at, "grey", "decide"))
 
-    active = load_bundles(Initiative.objects.current().filter(status=Initiative.Status.ACTIVE))
+    active = load_bundles(current.filter(status=Initiative.Status.ACTIVE))
     flagged = set()
     followups_by_initiative = {}
     for f in meetings_services.overdue_followups([b.entity_id for b in active]) if followups else []:
@@ -96,8 +114,17 @@ def triage(followups: bool = True) -> tuple[dict, list]:
         for f in followups_by_initiative.get(b.entity_id, []):
             rows["Chase"].append(Row(b, f"Follow-up overdue {f.days_overdue}d: {f.text[:80]}", f.due_date, "red"))
 
+    if watch_list:
+        for item in watch.open_items(scope):
+            chips = watch.watch_warnings(item)
+            if chips:
+                rows.setdefault("Watch", [])
+                overdue = any("overdue" in c for c in chips)
+                rows["Watch"].append(Row(WatchRef(item), ", ".join(chips), None,
+                                         "red" if overdue else "amber", "review", watch=True))
+
     for g in GROUPS:
-        for r in rows[g]:
+        for r in rows.get(g, []):
             flagged.add(r.bundle.entity_id)
     quiet = [b for b in active if b.entity_id not in flagged]
     return rows, quiet
@@ -133,7 +160,7 @@ def readiness() -> list[Readiness]:
     snap = snapshots.last_snapshot()
     t = rag.thresholds()
     out = []
-    for b in load_bundles(Initiative.objects.current().filter(status=Initiative.Status.ACTIVE)):
+    for b in load_bundles(Initiative.objects.current().listed().filter(status=Initiative.Status.ACTIVE)):
         ev = rag.evaluate(b, t, persist=False)
         hl = sum(1 for o in b.highlights if o.visibility == Visibility.EXEC)
         since = snap.taken_at if snap else None

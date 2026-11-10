@@ -126,6 +126,27 @@ Design is frozen in `docs/DESIGN.md` (from the clickable demo, Nov 5). Page buil
 - Checks: pytest 482 passed; check and makemigrations clean; smoke 46 routes x 5 roles with all modules on and
   all off: no server errors.
 
+## Controls needed by (Nov 9)
+- `ControlImpact.needed_by_milestone` (migration 0008), `Bundle.control_due`; RAG control rules use each
+  control's due date; Controls lane on the initiative timeline; editor select; loader `needed_by:`; snapshots
+  freeze needed-by and due date. Checks: pytest 506 passed; check/makemigrations clean; smoke: no errors.
+
+## Delete + TRAC item anchors (Nov 9)
+- Tech Risk "Delete initiative…" retires the initiative and its open follow-ups (reason in CurationEvent, name
+  typed to confirm); history and snapshots keep it. Item "Guidance" links open `<stage TRAC URL>#item-N`.
+- Checks: pytest 515 passed; check/makemigrations clean; delete flow verified on fake data.
+
+## SOX applicable + tracker as an initiative (Nov 9)
+- `Initiative.sox_applicable` (migration 0009, backfilled from `affects_sox_app`), SOX pill, `?scope=sox|all`
+  on exec summary, triage and audit (auditors default to sox). `scripts/initiatives/risk_tracker.yaml` tracks
+  this app (CHANGE_ME / CONFIRM placeholders for the user). Checks: pytest 535 passed; YAML loads; smoke clean.
+
+## Watch list (Nov 10)
+- Status watch/dropped, fields decision/decision_due/key_date(+label)/options_considered/next_check/
+  outcome_reason (migration tracker 0010), module switch `watch_list` (core 0004), `services/watch.py`,
+  `views/watch.py`, `Initiative.objects.listed()` excludes watch/dropped everywhere. Exec block frozen in
+  snapshot summary. Checks: pytest 568 passed; smoke 54 routes x 5 roles clean; confirm/drop verified.
+
 ## Known gaps / follow-ups
 - `override_history` returns all version rows on purpose (full audit trail); the modal shows one row per override.
 - Shared read-only link hides nav by passing an anonymous actor; a `{% block nav %}` would be cleaner.

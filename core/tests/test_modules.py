@@ -60,7 +60,8 @@ def test_settings_are_versioned_not_overwritten(world):
     first.refresh_from_db()
     assert first.valid_to is not None and second.entity_id == first.entity_id
     assert modules.current().pk == second.pk
-    assert modules.states() == {"owner_access": True, "meetings": False, "audit": False, "share_links": True}
+    assert modules.states() == {"owner_access": True, "meetings": False, "audit": False, "share_links": True,
+                                "watch_list": True}
 
 
 # --- meetings ---
@@ -199,7 +200,7 @@ def test_banner_only_for_tech_risk_when_something_off(client, world):
 
 def test_admin_form_saves_new_version_and_lists_changes(client, world):
     as_user(client, TR)
-    r = client.post(reverse("set_modules"), {"owner_access": "on", "audit": "on", "change_note": "Lighter setup"}, follow=True)
+    r = client.post(reverse("set_modules"), {"owner_access": "on", "audit": "on", "watch_list": "on", "change_note": "Lighter setup"}, follow=True)
     assert "Meetings off; Read-only links off." in r.content.decode()
     row = modules.current()
     assert (row.meetings, row.share_links, row.owner_access, row.audit) == (False, False, True, True)

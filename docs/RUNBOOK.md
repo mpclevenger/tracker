@@ -15,7 +15,14 @@ How to run the tracker day to day. Almost everything is done in the app; nothing
 
 ## Add an initiative
 - **In the app:** **Intake form**, then accept it from Workbench › Triage. On acceptance, the target go-live becomes the baseline.
+- **The tracker itself** is prefilled in `scripts/initiatives/risk_tracker.yaml`: replace every `CHANGE_ME`, check the lines marked CONFIRM, then load it as below.
 - **From a file** (for one with a lot of history): copy `scripts/initiative_template.yaml`, fill it in, then run `python scripts/load_initiative.py my_initiative.yaml`. It won't overwrite an existing initiative.
+
+## Watch list (not confirmed yet)
+For things that may become initiatives, such as a contract ending where the team hasn't decided to stay or move.
+- **Watch list › Add watch item**: what's being decided, decision due, optional key date (e.g. "Contract ends"), options, SOX applicable, possible impact, next check.
+- Warnings show on the Workbench when a decision is due within 30 days, a key date is within 90 days with no decision, or the next check has passed.
+- When it's decided: **Confirm as initiative** (it goes to the intake queue with its details) or **No change needed** (enter the outcome, e.g. "Renewed for 3 years").
 
 ## Turn modules on or off
 **Workbench › Admin › Modules.** Tick or untick, enter a note, then **Save**. Nothing is deleted; turning a module back on restores it as it was.
@@ -26,25 +33,29 @@ How to run the tracker day to day. Almost everything is done in the app; nothing
 | Meetings | Meetings log and follow-up reminders hidden |
 | Audit access | Auditors have no access; you keep the history pages |
 | Read-only links | No shareable exec summary link |
+| Watch list | Watch list page, its Workbench group and the exec block hidden |
 
 A small banner tells Tech Risk which modules are off.
 
 ## Change settings (all in the app, all versioned)
 | What | Where |
 |---|---|
-| Stage names, checklists, approver, TRAC link per stage | **Lifecycle & guidance › Edit stage** |
+| Stage names, checklists, approver, TRAC link per stage | **Lifecycle & guidance › Edit stage** (TRAC link = the stage page URL; item links add `#item-1`, `#item-2`, …) |
 | Gate requirements grid and oversight question wording | **Workbench › Admin › Gate requirements**. Record "Approved by" once the Head of Tech Risk agrees |
 | RAG thresholds (days late, days without check-in) | **Workbench › Admin › RAG thresholds** |
+| When each control must be ready | Initiative › Risks › Edit controls › **Needed by** (a key milestone; blank = go-live) |
 | Control library and control TRAC links | **Workbench › Admin › Control library** (Excel upload, or Link per row) |
 | Who has which role | **Workbench › Admin › Role management** |
+| Whether an initiative is SOX applicable | Initiative page: click the oversight pill, then **SOX applicable**. Auditors see SOX applicable items by default |
 | An initiative's oversight level or people | Initiative page: click the oversight pill, or **Change** next to Owner |
 | A status you disagree with | Initiative page, **Set override**. A reason and evidence are required; it expires if things get worse |
 
 ## Fix a mistake
 Edit the record in the app. The old value stays in History; that's intended, and it's what auditors rely on. Records are never deleted: remove a row with **Remove**, and close an initiative rather than deleting it.
 
-## Close or archive an initiative
-Initiative page › **Close initiative** (needs a control readiness outcome). Archive it later from the same place. Closed and archived initiatives stay in snapshots and history.
+## Close, archive or delete an initiative
+- **Close** when it's finished: Initiative page › **Close initiative** (needs a control readiness outcome). Archive it later from the same place.
+- **Delete** only a test or mistaken entry: Initiative page › **Delete initiative…**. Give a reason, then type the initiative's name to confirm. It disappears from every page; its history (with the reason) and any past snapshots keep it.
 
 ## Deploy an update
 1. Back up the database first (next section).

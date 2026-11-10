@@ -84,6 +84,7 @@ def resolve_actor(emp_id: str | None) -> Actor:
     )
     owned = set(
         Initiative.objects.current()
+        .listed()
         .filter(owner_emp_id=emp_id)
         .values_list("entity_id", flat=True)
     )

@@ -4,8 +4,9 @@
 {% block content %}
 <div class="d-flex align-items-center gap-3 mb-3">
   <h1 class="m-0 flex-grow-1">History — {{ initiative.name }}</h1>
-  <a href="{% url 'initiative' initiative.entity_id %}">Back to initiative</a>
+  {% if not deleted %}<a href="{{ back_url }}">{{ back_label }}</a>{% endif %}
 </div>
+{% if deleted %}<div class="warn mb-2">Deleted {{ deleted.on|short_date }} by {{ deleted.by|person }}: {{ deleted.reason }}</div>{% endif %}
 
 <div class="card"><div class="card-body">
   <h2 class="h6">Compare two points in time</h2>

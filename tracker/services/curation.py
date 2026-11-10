@@ -8,6 +8,10 @@ from tracker.services import rag
 from tracker.services.bundle import load_bundle
 
 
+DELETE_PREFIX = "deleted initiative: "
+MAX_DELETE_REASON = 180
+
+
 def touch(initiative_entity, author_emp_id, what):
     CurationEvent.objects.create(
         initiative_entity=initiative_entity, author_emp_id=author_emp_id, at=timezone.now(), what=what[:200]
@@ -102,3 +106,35 @@ def clear_override(initiative, author_emp_id):
 
 def override_history(initiative_entity):
     return list(RagOverride.objects.filter(initiative_entity=initiative_entity).order_by("-valid_from"))
+
+
+@transaction.atomic
+def delete_initiative(initiative, emp_id, reason):
+    """Retire an initiative and its open follow-ups, recording the reason; history stays."""
+    from meetings.models import FollowUp
+
+    reason = (reason or "").strip()
+    if not reason:
+        raise ValueError("Enter a reason for deleting the initiative.")
+    if len(reason) > MAX_DELETE_REASON:
+        raise ValueError(f"Keep the reason to {MAX_DELETE_REASON} characters or fewer.")
+    open_followups = FollowUp.objects.current().filter(
+        initiative_entity=initiative.entity_id, status=FollowUp.Status.OPEN
+    )
+    for followup in open_followups:
+        followup.retire(emp_id)
+    initiative.retire(emp_id)
+    touch(initiative.entity_id, emp_id, DELETE_PREFIX + reason)
+
+
+def deletion_record(initiative_entity):
+    """(tombstone version, CurationEvent) for a deleted initiative, else None."""
+    from tracker.models import Initiative
+
+    tomb = Initiative.objects.filter(entity_id=initiative_entity, is_deleted=True).order_by("-valid_from").first()
+    if tomb is None:
+        return None
+    event = CurationEvent.objects.filter(
+        initiative_entity=initiative_entity, what__startswith=DELETE_PREFIX
+    ).order_by("-at").first()
+    return tomb, event

@@ -114,7 +114,7 @@ def test_override_pill_visibility(client, settings, grant, amber_init):
                           timezone.localdate() + timedelta(days=14))
     rag.recompute(amber_init)
     settings.DEV_DEFAULT_EMP_ID = "AUD1"
-    html = client.get("/exec/").content.decode()
+    html = client.get("/exec/", {"scope": "all"}).content.decode()
     assert "Overridden: Amber → Red" in html
     assert "hx-get" in html
     settings.DEV_DEFAULT_EMP_ID = "CTO1"

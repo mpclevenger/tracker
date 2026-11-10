@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ item.name }} · Watch list{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center gap-3 flex-wrap mb-2">
+  <h1 class="m-0 flex-grow-1">{{ item.name }}</h1>
+  <a href="{% url 'watch_list' %}">Back to watch list</a>
+</div>
+{% if item.status == "dropped" %}
+<div class="alert alert-secondary py-2">No change needed: {{ item.outcome_reason }}</div>
+{% endif %}
+{% if chips %}<p>{% for c in chips %}<span class="pill {% if 'overdue' in c %}red{% else %}amber{% endif %}">{{ c }}</span> {% endfor %}</p>{% endif %}
+
+<div class="card mb-3" style="max-width:860px"><div class="card-body">
+  <dl class="row mb-0 small">
+    <dt class="col-sm-3">Decision</dt><dd class="col-sm-9">{{ item.decision|default:"—" }}</dd>
+    <dt class="col-sm-3">Decision due</dt><dd class="col-sm-9">{{ item.decision_due|short_date }}</dd>
+    <dt class="col-sm-3">{{ item.key_date_label|default:"Key date" }}</dt><dd class="col-sm-9">{{ item.key_date|short_date }}</dd>
+    <dt class="col-sm-3">Owner</dt><dd class="col-sm-9">{{ item.owner_emp_id|person }}</dd>
+    <dt class="col-sm-3">SOX applicable</dt><dd class="col-sm-9">{% if item.sox_applicable %}Yes{% else %}No{% endif %}</dd>
+    <dt class="col-sm-3">Options considered</dt><dd class="col-sm-9">{{ item.options_considered|default:"—"|linebreaksbr }}</dd>
+    <dt class="col-sm-3">Next check</dt><dd class="col-sm-9">{{ item.next_check|short_date }}</dd>
+    <dt class="col-sm-3">Notes</dt><dd class="col-sm-9">{{ item.description|default:"—"|linebreaksbr }}</dd>
+    <dt class="col-sm-3" title="From the possible impact answers">Likely oversight</dt><dd class="col-sm-9">{{ likely }}{% if impacts %} <span class="muted">· {{ impacts|join:"; " }}</span>{% endif %}</dd>
+  </dl>
+</div></div>
+
+{% if can_history %}<p class="small"><a href="{% url 'initiative_history' item.entity_id %}">History</a></p>{% endif %}
+
+{% if can_edit %}
+<div class="d-flex gap-2 flex-wrap align-items-start">
+  <a class="btn btn-outline-secondary btn-sm" href="{% url 'watch_edit' item.entity_id %}">Edit</a>
+  <details>
+    <summary class="btn btn-primary btn-sm">Confirm as initiative</summary>
+    <form method="post" action="{% url 'watch_confirm' item.entity_id %}" class="mt-2 d-flex gap-2 align-items-center">{% csrf_token %}
+      <span class="small">Send to the intake queue?</span>
+      <button class="btn btn-sm btn-primary">Confirm</button>
+    </form>
+  </details>
+  <details>
+    <summary class="btn btn-outline-secondary btn-sm">No change needed…</summary>
+    <form method="post" action="{% url 'watch_drop' item.entity_id %}" class="mt-2 d-flex gap-2">{% csrf_token %}
+      <input type="text" name="reason" class="form-control form-control-sm" placeholder="Reason" required style="width:280px">
+      <button class="btn btn-sm btn-secondary">Save</button>
+    </form>
+  </details>
+  <details>
+    <summary class="btn btn-outline-danger btn-sm" title="For items added by mistake">Delete…</summary>
+    <form method="post" action="{% url 'watch_delete' item.entity_id %}" class="mt-2 d-flex gap-2">{% csrf_token %}
+      <input type="text" name="reason" class="form-control form-control-sm" placeholder="Reason" required maxlength="180" style="width:280px">
+      <button class="btn btn-sm btn-danger">Delete</button>
+    </form>
+  </details>
+</div>
+{% endif %}
+{% endblock %}

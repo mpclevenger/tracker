@@ -6,7 +6,7 @@ from django.utils import timezone
 from core import clock
 from tracker import lifecycle as rules
 from tracker.models import Initiative, Snapshot, SnapshotRow, Visibility
-from tracker.services import lifecycle, rag
+from tracker.services import lifecycle, rag, watch
 from tracker.services.bundle import load_bundle
 
 
@@ -33,7 +33,11 @@ def _stage(st) -> dict:
 
 def _control(bundle, impact) -> dict:
     c = bundle.control_for(impact)
-    return {"control_id": c.control_id if c else "", "name": c.name if c else "", "readiness": impact.readiness}
+    label, due = bundle.control_due(impact)
+    return {
+        "control_id": c.control_id if c else "", "name": c.name if c else "", "readiness": impact.readiness,
+        "needed_by": label, "due": _iso(due),
+    }
 
 
 def frozen_row(bundle, ev) -> dict:
@@ -67,6 +71,7 @@ def frozen_row(bundle, ev) -> dict:
         "open_high_risks": sum(
             1 for r in bundle.risks if r.rating == "H" and r.is_open and r.visibility == Visibility.EXEC
         ),
+        "sox_applicable": init.sox_applicable,
         "oversight": init.oversight,
         "oversight_overridden": bool(init.oversight_override),
         "stages": [_stage(st) for st in lifecycle.stage_statuses(bundle)],
@@ -78,7 +83,7 @@ def frozen_row(bundle, ev) -> dict:
 
 @transaction.atomic
 def take_snapshot(author_emp_id, label, note="") -> Snapshot:
-    inits = list(Initiative.objects.current().exclude(status=Initiative.Status.PROPOSED))
+    inits = list(Initiative.objects.current().listed().exclude(status=Initiative.Status.PROPOSED))
     t = rag.thresholds()
     rows, active_effective = [], []
     counts = {"golive90": 0, "high_open": 0, "stale": 0}
@@ -106,6 +111,7 @@ def take_snapshot(author_emp_id, label, note="") -> Snapshot:
             "amber": active_effective.count("amber"),
             "red": active_effective.count("red"),
             **counts,
+            "watch": watch.freeze(),
             "thresholds": t,
             "gate_matrix_version": rules.gate_matrix_version(),
             "guidance_version": lifecycle.guidance_version(),

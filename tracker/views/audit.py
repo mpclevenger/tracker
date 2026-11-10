@@ -3,7 +3,9 @@
 from datetime import date, timedelta
 
 from django.core.exceptions import FieldDoesNotExist
+from django.http import Http404
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 
 from core import clock
 from core.auth.decorators import forbidden
@@ -26,7 +28,9 @@ from tracker.models import (
     StageCheck,
 )
 from tracker.lifecycle import REQUIREMENT_LABELS
-from tracker.views.common import get_initiative
+from tracker.services import curation
+from tracker.views.common import get_initiative, resolve_scope, scope_context
+from tracker.visibility import EXEC_VISIBLE_STATUSES
 
 LAYERED_MODELS = (Overlay, RiskItem, ControlImpact)
 HISTORY_MODELS = (Initiative, Phase, Milestone, RiskItem, ControlImpact, Overlay, RagOverride, StageCheck,
@@ -53,8 +57,10 @@ def audit_home(request):
     """Point-in-time pickers: a snapshot or an as-of date, both opening the exec summary."""
     if (denied := _audit_actor_or_403(request)):
         return denied
+    scope = resolve_scope(request, request.actor)
     return render(request, "tracker/audit_home.html", {
         "nav": "audit",
+        **scope_context(request, scope),
         "snapshots": Snapshot.objects.order_by("-taken_at"),
         "today": clock.today(),
     })
@@ -199,11 +205,30 @@ def _snapshot_state(model, eid, at, hidden):
     return {v.entity_id: v for v in qs if v.entity_id not in hidden}
 
 
+def _initiative_or_deleted(request, entity_id):
+    """Current initiative, else the last version of a deleted one the actor may audit; else 404."""
+    try:
+        return get_initiative(request, entity_id), None
+    except Http404:
+        watch_item = Initiative.objects.current().filter(
+            entity_id=entity_id, status__in=Initiative.WATCH_STATUSES).first()
+        if watch_item and request.modules["watch_list"]:
+            return watch_item, None
+        record = curation.deletion_record(entity_id)
+        if record is None:
+            raise
+        tomb, event = record
+        if not (request.actor.is_tech_risk or tomb.status in EXEC_VISIBLE_STATUSES):
+            raise
+        reason = event.what[len(curation.DELETE_PREFIX):] if event else ""
+        return tomb, {"on": tomb.valid_from, "by": tomb.author_emp_id, "reason": reason}
+
+
 def history(request, entity_id):
     """Field-level history for one initiative plus a two-point comparison."""
     if (denied := _audit_actor_or_403(request)):
         return denied
-    init = get_initiative(request, entity_id)
+    init, deleted = _initiative_or_deleted(request, entity_id)
     actor = request.actor
     eid = init.entity_id
     hidden = _hidden_entities(actor, eid)
@@ -246,6 +271,8 @@ def history(request, entity_id):
             comparison.append(entry)
 
     return render(request, "tracker/history.html", {
-        "nav": "audit", "initiative": init, "rows": rows, "comparison": comparison,
+        "nav": "audit", "initiative": init, "deleted": deleted,
+        "back_url": reverse("watch_item" if init.status in Initiative.WATCH_STATUSES else "initiative", args=[eid]),
+        "back_label": "Back to watch item" if init.status in Initiative.WATCH_STATUSES else "Back to initiative", "rows": rows, "comparison": comparison,
         "from_date": from_d, "to_date": to_d,
     })

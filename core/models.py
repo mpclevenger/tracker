@@ -51,6 +51,7 @@ class ModuleSettings(VersionedModel):
     meetings = models.BooleanField(default=True)
     audit = models.BooleanField(default=True)
     share_links = models.BooleanField(default=True)
+    watch_list = models.BooleanField(default=True)
     change_note = models.CharField(max_length=300, blank=True)
 
     class Meta(VersionedModel.Meta):

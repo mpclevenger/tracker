@@ -1,5 +1,6 @@
 {% load ui %}{% if shared %}<div class="tile {{ tile.effective }}">{% else %}<a class="tile {{ tile.effective }}" href="{% url 'initiative' tile.entity_id %}">{% endif %}
   <h3>{{ tile.name }}
+    {% if tile.sox %}<span class="pill sox" title="Relevant to SOX">SOX</span>{% endif %}
     {% if tile.is_stale %}<span class="pill stale">No check-in · {{ tile.stale_days }}d</span>{% endif %}
     {% if viewer.sees_override_detail and tile.override %}{% if ctx.mode == "snapshot" %}<span class="pill override">Overridden: {{ tile.derived|cap }} → {{ tile.effective|cap }}</span>{% else %}<span class="pill override" hx-get="{% url 'override_modal' tile.entity_id %}" hx-target="#modal" hx-swap="innerHTML">Overridden: {{ tile.derived|cap }} → {{ tile.effective|cap }} ›</span>{% endif %}{% endif %}
   </h3>

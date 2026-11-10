@@ -249,7 +249,7 @@ def guidance_page(request):
     pages = lc.current_guidance()
     actor = request.actor
     mine = sorted(
-        Initiative.objects.current().filter(entity_id__in=actor.owned_initiatives)
+        Initiative.objects.current().listed().filter(entity_id__in=actor.owned_initiatives)
         .exclude(status__in=[Initiative.Status.CLOSED, Initiative.Status.ARCHIVED]),
         key=lambda i: i.name.lower(),
     )

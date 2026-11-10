@@ -37,13 +37,15 @@ def check_in_due(bundle):
 # --- oversight level ----------------------------------------------------------------------------------
 
 @transaction.atomic
-def set_oversight(initiative, author_emp_id, answers, override="", reason=""):
-    """Tech Risk updates the intake answers and/or overrides the level (a reason is required to override)."""
+def set_oversight(initiative, author_emp_id, answers, override="", reason="", sox_applicable=None):
+    """Tech Risk updates the intake answers, the SOX flag (None keeps it) and/or overrides the level (a reason is required to override)."""
     if override and not reason.strip():
         raise ValueError("Enter a reason for the oversight override.")
     changes = {key: bool(answers.get(key)) for key in QUESTION_KEYS}
     changes["oversight_override"] = override
     changes["oversight_override_reason"] = reason.strip() if override else ""
+    if sox_applicable is not None:
+        changes["sox_applicable"] = bool(sox_applicable)
     if all(getattr(initiative, k) == v for k, v in changes.items()):
         return initiative
     new = initiative.new_version(author_emp_id, **changes)

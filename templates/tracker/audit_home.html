@@ -2,11 +2,12 @@
 {% load ui %}
 {% block title %}Audit · IT Initiative Risk Tracker{% endblock %}
 {% block content %}
-<h1>Audit</h1>
+<div class="d-flex align-items-center gap-3 mb-2"><h1 class="m-0">Audit</h1>{% include "tracker/partials/scope_toggle.html" %}</div>
 <div class="card"><div class="card-body">
   <h2 class="h6">Point in time</h2>
   <div class="d-flex gap-4 flex-wrap">
     <form method="get" action="{% url 'exec_summary' %}" class="m-0">
+      <input type="hidden" name="scope" value="{{ scope }}">
       <label class="small muted" for="aud-snapshot">Snapshot (as presented)</label><br>
       <select id="aud-snapshot" name="snapshot" class="form-select form-select-sm d-inline-block w-auto">
         <option value="">Live data</option>
@@ -15,6 +16,7 @@
       <button type="submit" class="btn btn-sm btn-outline-secondary">View</button>
     </form>
     <form method="get" action="{% url 'exec_summary' %}" class="m-0">
+      <input type="hidden" name="scope" value="{{ scope }}">
       <label class="small muted" for="aud-asof">As of a date (latest snapshot on or before it)</label><br>
       <input id="aud-asof" type="date" name="as_of" value="{{ today|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}" class="form-control form-control-sm d-inline-block w-auto">
       <button type="submit" class="btn btn-sm btn-outline-secondary">View</button>
