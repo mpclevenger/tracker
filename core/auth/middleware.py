@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from django.conf import settings
 from django.http import Http404
 
@@ -31,12 +33,7 @@ def _actor_for(request) -> Actor:
         actor = resolve_actor(emp_id)
         extra = sso.roles_from_request(request) if emp_id else None
         if extra:
-            actor = Actor(
-                emp_id=actor.emp_id,
-                display_name=actor.display_name,
-                roles=actor.roles | frozenset(extra),
-                owned_initiatives=actor.owned_initiatives,
-            )
+            actor = replace(actor, roles=actor.roles | frozenset(extra))
         return actor
     return resolve_actor(request.session.get(DEV_SESSION_KEY) or settings.DEV_DEFAULT_EMP_ID or None)
 

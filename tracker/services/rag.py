@@ -35,10 +35,10 @@ def _fmt(d):
     return f"{d:%b} {d.day}, {d.year}"
 
 
-def _control_rules(bundle, t, bump):
+def _control_rules(bundle, t, bump, impacts=None):
     """Fire the control rules by days to each control's own due date (go-live unless linked)."""
     groups = {"red": [], "amber": []}
-    for i in bundle.impacts:
+    for i in bundle.impacts if impacts is None else impacts:
         label, due = bundle.control_due(i)
         days = clock.days_until(due)
         if days is None:
@@ -83,6 +83,7 @@ class Evaluation:
     override: RagOverride | None = None
     computed_at: object = None
     thresholds: dict = field(default_factory=dict)
+    workstreams: list = field(default_factory=list)  # [(Workstream, Evaluation)], derived over its tagged items
 
     @property
     def is_stale(self):
@@ -93,30 +94,20 @@ class Evaluation:
         return self.stale_days is not None and self.stale_days > self.thresholds["early_warning_stale_days"]
 
 
-def stale_days(bundle: Bundle) -> int | None:
-    if bundle.last_update:
-        return clock.days_since(bundle.last_update.posted_at)
+def stale_days(bundle: Bundle, ws=None) -> int | None:
+    """Days since the last check-in: the workstream's, else the initiative's own."""
+    if ws is not None:
+        return clock.days_since(bundle.ws_checkin_base(ws))
+    last = bundle.own_last_update
+    if last:
+        return clock.days_since(last.posted_at)
     if bundle.initiative.accepted_at:
         return clock.days_since(bundle.initiative.accepted_at)
     return None
 
 
-def derive(bundle: Bundle, t: dict | None = None) -> Evaluation:
-    t = t or thresholds()
-    ev = Evaluation(thresholds=t)
-    init = bundle.initiative
-    if init.status in (Initiative.Status.CLOSED, Initiative.Status.ARCHIVED):
-        return ev
-
-    worst = [Rag.GREEN]
-
-    def bump(level, chip, detail):
-        """chip: short plain-words label shown on pages; detail: one brief phrase for its tooltip."""
-        ev.fired.append((level, chip, detail))
-        if RAG_ORDER[level] > RAG_ORDER[worst[0]]:
-            worst[0] = level
-
-    for m in bundle.milestones:
+def _milestone_rules(milestones, t, bump):
+    for m in milestones:
         if not m.is_key or m.status == Milestone.Status.DONE:
             continue
         slip = m.slippage_days
@@ -127,33 +118,108 @@ def derive(bundle: Bundle, t: dict | None = None) -> Evaluation:
         elif slip > t["amber_key_milestone_slip_days"]:
             bump(Rag.AMBER, f"Milestone slipped {slip}d", m.name)
 
-    if init.baseline_go_live and init.target_go_live:
-        slip = (init.target_go_live - init.baseline_go_live).days
-        if slip > t["red_go_live_slip_days"]:
-            bump(Rag.RED, f"Go-live slipped {slip}d", f"Versus baseline {_fmt(init.baseline_go_live)}")
 
-    for r in bundle.risks:
+def _risk_rules(risks, bump):
+    for r in risks:
         if r.rating == RiskItem.Rating.HIGH and r.is_open:
             if r.target_date and r.target_date < clock.today():
                 bump(Rag.RED, "High risk past due", r.title)
             else:
                 bump(Rag.AMBER, "High risk open", r.title)
 
-    ev.days_to_go_live = clock.days_until(init.target_go_live)
-    _control_rules(bundle, t, bump)
 
-    ev.stale_days = stale_days(bundle)
-    if ev.stale_days is not None:
-        last = f"Last check-in {_fmt(clock.local_date(bundle.last_update.posted_at))}" if bundle.last_update else "No check-in yet"
-        if ev.stale_days > t["red_stale_days"]:
-            bump(Rag.RED, f"No check-in {ev.stale_days}d", last)
-        elif ev.stale_days > t["amber_stale_days"]:
-            bump(Rag.AMBER, f"No check-in {ev.stale_days}d", last)
+def _stale_rule(ev, last_update, t, bump):
+    if ev.stale_days is None:
+        return
+    last = f"Last check-in {_fmt(clock.local_date(last_update.posted_at))}" if last_update else "No check-in yet"
+    if ev.stale_days > t["red_stale_days"]:
+        bump(Rag.RED, f"No check-in {ev.stale_days}d", last)
+    elif ev.stale_days > t["amber_stale_days"]:
+        bump(Rag.AMBER, f"No check-in {ev.stale_days}d", last)
 
-    ev.derived = worst[0]
+
+def _finish(ev, worst):
+    ev.derived = worst
     top = next((f for f in ev.fired if f[0] == ev.derived), None)
     ev.chip, ev.rule = (top[1], top[2]) if top else ("", "No rule fired")
     return ev
+
+
+def _bumper(ev, worst):
+    def bump(level, chip, detail):
+        """chip: short plain-words label shown on pages; detail: one brief phrase for its tooltip."""
+        ev.fired.append((level, chip, detail))
+        if RAG_ORDER[level] > RAG_ORDER[worst[0]]:
+            worst[0] = level
+
+    return bump
+
+
+def derive_workstream(bundle: Bundle, ws, t: dict | None = None) -> Evaluation:
+    """The same rules over one workstream's tagged items; go-live slip uses its latest key milestone."""
+    t = t or thresholds()
+    ev = Evaluation(thresholds=t)
+    if bundle.initiative.status in (Initiative.Status.CLOSED, Initiative.Status.ARCHIVED):
+        return ev
+    worst = [Rag.GREEN]
+    bump = _bumper(ev, worst)
+    eid = ws.entity_id
+    milestones = bundle.scoped(bundle.milestones, eid)
+    _milestone_rules(milestones, t, bump)
+
+    keys = [m for m in milestones if m.is_key and (m.actual or m.forecast or m.planned)]
+    latest = max(keys, key=lambda m: m.actual or m.forecast or m.planned, default=None)
+    if latest and latest.status != Milestone.Status.DONE:
+        slip = latest.slippage_days
+        if slip is not None and slip > t["red_go_live_slip_days"]:
+            bump(Rag.RED, f"Go-live slipped {slip}d", f"Versus plan {_fmt(latest.planned)}")
+
+    _risk_rules(bundle.scoped(bundle.risks, eid), bump)
+    _control_rules(bundle, t, bump, bundle.scoped(bundle.impacts, eid))
+    ev.stale_days = stale_days(bundle, ws)
+    _stale_rule(ev, bundle.ws_last_update(eid), t, bump)
+    ev.effective = _finish(ev, worst[0]).derived
+    return ev
+
+
+def evaluate_workstream(bundle: Bundle, ws, t: dict | None = None) -> Evaluation:
+    """Status of one workstream (no override; those stay at the initiative level)."""
+    return derive_workstream(bundle, ws, t)
+
+
+def derive(bundle: Bundle, t: dict | None = None) -> Evaluation:
+    """Worst of the initiative's own untagged-item rules and every workstream's result."""
+    t = t or thresholds()
+    ev = Evaluation(thresholds=t)
+    init = bundle.initiative
+    if init.status in (Initiative.Status.CLOSED, Initiative.Status.ARCHIVED):
+        return ev
+
+    worst = [Rag.GREEN]
+    bump = _bumper(ev, worst)
+
+    _milestone_rules(bundle.own(bundle.milestones), t, bump)
+
+    if init.baseline_go_live and init.target_go_live:
+        slip = (init.target_go_live - init.baseline_go_live).days
+        if slip > t["red_go_live_slip_days"]:
+            bump(Rag.RED, f"Go-live slipped {slip}d", f"Versus baseline {_fmt(init.baseline_go_live)}")
+
+    _risk_rules(bundle.own(bundle.risks), bump)
+
+    ev.days_to_go_live = clock.days_until(init.target_go_live)
+    _control_rules(bundle, t, bump, bundle.own(bundle.impacts))
+
+    ev.stale_days = stale_days(bundle)
+    _stale_rule(ev, bundle.own_last_update, t, bump)
+
+    for ws in bundle.workstreams:
+        wev = derive_workstream(bundle, ws, t)
+        ev.workstreams.append((ws, wev))
+        for level, chip, detail in wev.fired:
+            bump(level, f"{ws.name}: {chip}", detail)
+
+    return _finish(ev, worst[0])
 
 
 def evaluate(bundle: Bundle, t: dict | None = None, persist: bool = True) -> Evaluation:

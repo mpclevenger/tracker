@@ -11,7 +11,7 @@ pytestmark = pytest.mark.django_db
 
 TR, OWNER, CTO, AUD = "E00001", "E00101", "E00201", "E00301"
 INTERNAL_RISK = "Go-live overlaps the Q4"
-TABS = ["overview", "plan", "risks", "lifecycle", "meetings", "history"]
+TABS = ["overview", "plan", "risks", "lifecycle", "meetings", "history", "exec"]
 
 
 @pytest.fixture
@@ -54,10 +54,10 @@ def test_summary_strip_facts(seeded, as_user):
     html = html_of(as_user(TR), seeded)
     assert "Go-live slipped 35d" in html and "slipped 35d" in html
     assert "Versus baseline" in html
-    for label in ("Stage", "Oversight", "Go-live", "Next milestone", "Check-ins"):
+    for label in ("Stage", "Go-live", "Next milestone", "Next check-in"):
         assert f'<span class="l">{label}</span>' in html
     assert initiative_oversight_label(seeded) in html
-    assert "Check-in due" in html or "Check-in overdue" in html
+    assert "Due " in html or "Overdue " in html
     assert "Set by Tech Risk" in html
     assert reverse("oversight_modal", args=[seeded.entity_id]) in html
 
@@ -79,22 +79,28 @@ def test_cto_overview_hides_tech_risk_cards(seeded, as_user):
     assert INTERNAL_RISK not in html
     assert "Exec view" not in html and "RAG rules" not in html
     assert reverse("oversight_modal", args=[seeded.entity_id]) not in html
+    assert page(c_ := as_user(CTO), seeded, "exec").status_code == 200 and "Exec tile preview" not in html_of(c_, seeded, "exec")
 
 
-def test_tech_risk_overview_cards(seeded, as_user):
-    html = html_of(as_user(TR), seeded)
-    assert "RAG rules" in html and "Exec view" in html and "Set override" in html
+def test_tech_risk_overview_and_exec_tab(seeded, as_user):
+    c = as_user(TR)
+    html = html_of(c, seeded)
+    assert "Why this status" in html and "RAG rules" not in html and "Exec tile preview" not in html
+    assert "Set override" in html and "Actions" in html
     assert reverse("edit_people", args=[seeded.entity_id]) in html
-    assert "Owner: John" in html
+    assert "John" in html
+    ex = html_of(c, seeded, "exec")
+    assert "Exec tile preview" in ex and "Last curated" in ex and "Commentary and notes" in ex
+    assert reverse("overlay_add", args=[seeded.entity_id]) in ex
 
 
 def test_risks_tab_columns_by_role(seeded, as_user):
     cto = html_of(as_user(CTO), seeded, "risks")
     assert INTERNAL_RISK not in cto
-    assert "<th>Source</th>" not in cto and "<th>Visibility</th>" not in cto
+    assert "Edit visibility" not in cto and 'name="visibility"' not in cto
     tr = html_of(as_user(TR), seeded, "risks")
-    assert INTERNAL_RISK in tr and "hidden from exec" in tr
-    assert "<th>Source</th>" in tr and "<th>Visibility</th>" in tr
+    assert INTERNAL_RISK in tr and 'class="tag internal"' in tr
+    assert "Edit visibility" in tr and 'name="visibility"' in tr
 
 
 def test_control_id_links_to_trac(seeded, as_user):
@@ -263,7 +269,7 @@ def test_edit_people_changes_owner_and_delegates(seeded, as_user):
     c.post(url, {"owner": CTO, "delegates": [AUD]})
     assert set(Delegation.objects.current().filter(initiative_entity=seeded.entity_id).values_list("delegate_emp_id", flat=True)) == {AUD}
     assert CurationEvent.objects.filter(initiative_entity=seeded.entity_id, what__startswith="owner").exists()
-    assert "Owner: CTO" in html_of(c, seeded)
+    assert "CTO" in html_of(c, seeded)
 
 
 def test_edit_people_rejects_unknown_owner(seeded, as_user):
@@ -295,7 +301,7 @@ def test_owner_view(seeded, as_user):
 def test_auditor_sees_override_badge(seeded, as_user):
     as_user(TR).post(reverse("override_set", args=[seeded.entity_id]), {
         "value": "green", "reason": "Compensating controls", "support": "T-1", "review_by": "2030-01-01"})
-    assert "Overridden:" in html_of(as_user(AUD), seeded)
+    assert "Overridden:" in html_of(as_user(AUD), seeded) and ">Override<" in html_of(as_user(AUD), seeded)
     assert "Overridden:" not in html_of(as_user(CTO), seeded)
 
 

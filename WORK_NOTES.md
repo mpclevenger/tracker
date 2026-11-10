@@ -147,6 +147,15 @@ Design is frozen in `docs/DESIGN.md` (from the clickable demo, Nov 5). Page buil
   `views/watch.py`, `Initiative.objects.listed()` excludes watch/dropped everywhere. Exec block frozen in
   snapshot summary. Checks: pytest 568 passed; smoke 54 routes x 5 roles clean; confirm/drop verified.
 
+## UI fixes, page polish, workstreams (Nov 10)
+- Name fields relabeled; New initiative button and Tech Risk redirect to the new initiative; intake form
+  trimmed (essentials + "More details"); timeline names link to initiative pages (not on shared links).
+- Initiative page redesign (header + Actions menu, read-only Overview, Exec view tab, tidier Risks & controls).
+- Workstreams (migration 0011, `services/workstreams.py`): per-workstream status and check-ins, worst-of roll-up,
+  lead rights, exec tile roll-up line, stage-span bars on the portfolio timeline, loader `workstreams:`.
+- Fake data adds "Data lake rollout" with four workstreams. Checks: pytest 596 passed; screenshots reviewed.
+- Watch: `test_sox_scope::test_pill_on_tiles_and_initiative_page` reported as intermittently order-dependent.
+
 ## Known gaps / follow-ups
 - `override_history` returns all version rows on purpose (full audit trail); the modal shows one row per override.
 - Shared read-only link hides nav by passing an anonymous actor; a `{% block nav %}` would be cleaner.

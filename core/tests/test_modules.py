@@ -158,7 +158,7 @@ def test_owner_access_off_actor_flags(world):
 def test_owner_access_off_tech_risk_keeps_intake(client, world):
     switch(owner_access=False)
     as_user(client, TR)
-    assert "Intake form" in nav(client)
+    assert "New initiative" in nav(client)
     assert client.get("/intake/").status_code == 200
 
 

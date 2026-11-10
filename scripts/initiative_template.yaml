@@ -35,6 +35,14 @@ initiative:
     changes_access_model: true
     moves_to_vendor_or_cloud: false
 
+# Optional: split a large initiative into workstreams, each with a lead. Then add `workstream: <name>` to any phase, milestone,
+# risk or control impact below; leave it off for items that belong to the whole initiative. Unknown names are an error.
+# workstreams:
+#   - {name: Front end, lead_emp_id: E00103, lead_name: Adam Brown, description: Web and mobile screens}
+#   - {name: Compute,   lead_emp_id: E00105, lead_name: Priya Shah}
+# phases:
+#   - {name: Compute build, stage: 2, workstream: Compute, planned_start: 2026-08-16, planned_end: 2026-10-31}
+
 # Phases map to the lifecycle stages: 1 Mobilize & Design, 2 Build & Configure, 3 Test & Validate,
 # 4 Cutover & Go-live, 5 Hypercare & Stabilize. Forecast/actual default to planned when omitted.
 phases:

@@ -40,6 +40,17 @@ def _control(bundle, impact) -> dict:
     }
 
 
+def _workstreams(ev) -> list:
+    from core.models import Person
+
+    names = dict(Person.objects.filter(pk__in=[w.lead_emp_id for w, _e in ev.workstreams]).values_list("pk", "display_name"))
+    return [
+        {"name": w.name, "lead_emp_id": w.lead_emp_id, "lead": names.get(w.lead_emp_id, w.lead_emp_id),
+         "effective": e.effective, "chip": e.chip}
+        for w, e in ev.workstreams
+    ]
+
+
 def frozen_row(bundle, ev) -> dict:
     """Exec/audit-visible state only. Internal and owner-only items are never frozen."""
     init = bundle.initiative
@@ -76,6 +87,7 @@ def frozen_row(bundle, ev) -> dict:
         "oversight_overridden": bool(init.oversight_override),
         "stages": [_stage(st) for st in lifecycle.stage_statuses(bundle)],
         "controls": [_control(bundle, i) for i in bundle.impacts],
+        "workstreams": _workstreams(ev),
         "closed_at": init.closed_at.isoformat() if init.closed_at else None,
         "closure_control_outcome": init.closure_control_outcome,
     }

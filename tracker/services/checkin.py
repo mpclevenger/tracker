@@ -22,12 +22,19 @@ def _fmt(value):
 
 # --- check-in due -----------------------------------------------------------------------------------
 
-def check_in_due(bundle):
-    """(due date, days overdue) from the last posted update, else acceptance; (None, 0) when not active."""
+def check_in_due(bundle, ws=None):
+    """(due date, days overdue) from the last posted update, else acceptance; (None, 0) when not active.
+
+    With `ws`, the workstream's own check-in clock; otherwise the initiative's own (untagged) one.
+    """
     init = bundle.initiative
     if init.status != Initiative.Status.ACTIVE:
         return None, 0
-    last = bundle.last_update.posted_at if bundle.last_update else init.accepted_at
+    if ws is not None:
+        last = bundle.ws_checkin_base(ws)
+    else:
+        own = bundle.own_last_update
+        last = own.posted_at if own else init.accepted_at
     if last is None:
         return None, 0
     due = clock.local_date(last) + timedelta(days=settings.CHECKIN_INTERVAL_DAYS)
@@ -79,8 +86,10 @@ def send_back_control(impact, author_emp_id, comment):
 
 @transaction.atomic
 def post_check_in(initiative, author_emp_id, text, *, go_live=None, milestone=None, forecast=None,
-                  pct_complete=None, controls=None, new_risk=None):
+                  pct_complete=None, controls=None, new_risk=None, workstream=None):
     """Apply an owner check-in in one step and post the update with a diff of what changed.
+
+    workstream: the Workstream this check-in is for, or None for the whole initiative.
 
     controls: {impact_entity: (readiness, evidence_link)} with readiness from OWNER_CONTROL_CHOICES.
     new_risk: (title, rating) or None.
@@ -88,6 +97,7 @@ def post_check_in(initiative, author_emp_id, text, *, go_live=None, milestone=No
     if not text.strip():
         raise ValueError("Describe what has changed.")
     diff = {}
+    ws_entity = workstream.entity_id if workstream else None
     if go_live and go_live != initiative.target_go_live:
         diff["Go-live"] = [_fmt(initiative.target_go_live), _fmt(go_live)]
         initiative = initiative.new_version(author_emp_id, target_go_live=go_live)
@@ -126,11 +136,12 @@ def post_check_in(initiative, author_emp_id, text, *, go_live=None, milestone=No
         RiskItem.create(
             author_emp_id, initiative_entity=initiative.entity_id, type=RiskItem.Type.RISK, title=title.strip(),
             rating=rating, owner="", source=RiskItem.Source.OWNER, visibility=Visibility.EXEC,
+            workstream_entity=ws_entity,
         )
         diff["New risk"] = ["—", f"{title.strip()} ({rating})"]
     update = Update.objects.create(
         initiative_entity=initiative.entity_id, author_emp_id=author_emp_id, posted_at=timezone.now(),
-        text=text.strip(), change_diff=diff,
+        text=text.strip(), change_diff=diff, workstream_entity=ws_entity,
     )
     rag.recompute(initiative)
     return update

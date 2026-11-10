@@ -3,13 +3,23 @@
   <div class="d-flex justify-content-between"><h2 class="h5">Check in — {{ initiative.name }}</h2>
     <button type="button" class="btn btn-sm btn-outline-secondary" hx-get="{% url 'close_modal' %}" hx-target="#modal" hx-swap="innerHTML">Close</button></div>
   <form hx-post="{% url 'check_in' eid %}" hx-target="#modal" hx-swap="innerHTML">
+    {% if ws_options %}
+    <div class="ini-modal-row">
+      <label class="form-label" for="ci-ws">Workstream</label>
+      <select id="ci-ws" name="ws" class="form-select form-select-sm" title="Milestone and controls below follow the workstream"
+              hx-get="{% url 'check_in' eid %}" hx-trigger="change" hx-include="[name='text']" hx-target="#modal" hx-swap="innerHTML">
+        {% if whole_ok %}<option value="" {% if not workstream %}selected{% endif %}>Whole initiative</option>{% endif %}
+        {% for w in ws_options %}<option value="{{ w.entity_id }}" {% if workstream and workstream.entity_id == w.entity_id %}selected{% endif %}>{{ w.name }}</option>{% endfor %}
+      </select>
+    </div>
+    {% endif %}
     <div class="ini-modal-row">
       <label class="form-label" for="{{ form.text.id_for_label }}">What's changed?</label>
       {{ form.text }}
       {% for e in form.text.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
     </div>
     <div class="row g-2 ini-modal-row">
-      <div class="col-sm-4"><label class="form-label" for="{{ form.go_live.id_for_label }}">Go-live date</label>{{ form.go_live }}{% for e in form.go_live.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+      {% if not workstream %}<div class="col-sm-4"><label class="form-label" for="{{ form.go_live.id_for_label }}">Go-live date</label>{{ form.go_live }}{% for e in form.go_live.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>{% endif %}
       {% if milestone %}
       <div class="col-sm-5"><label class="form-label" for="{{ form.forecast.id_for_label }}">{{ milestone.name }} · forecast</label>{{ form.forecast }}{% for e in form.forecast.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
       <div class="col-sm-3"><label class="form-label" for="{{ form.pct_complete.id_for_label }}">% complete</label>{{ form.pct_complete }}{% for e in form.pct_complete.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>

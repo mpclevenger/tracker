@@ -7,5 +7,6 @@
   {% with c=tile.comparison %}<div class="meta compare {{ c.0 }}"{% if ctx.comparison_label %} title="Compared with the last snapshot: {{ ctx.comparison_label }}"{% endif %}>{{ c.1 }}</div>{% endwith %}
   <div class="meta">{{ tile.owner_emp_id|person }} · last check-in {% if tile.last_update_at %}{{ tile.last_update_at|short_date }} ({{ tile.last_update_at|days_ago }}){% else %}never{% endif %}</div>
   {% if tile.chip %}<div class="meta why"><b>Why {{ tile.effective }}:</b> {{ tile.chip }}</div>{% endif %}
+  {% if tile.workstream_rollup %}<div class="meta" title="Workstream status">{{ tile.workstream_rollup }}</div>{% endif %}
   {% if tile.highlights %}<ul>{% for h in tile.highlights %}<li>{{ h }}</li>{% endfor %}</ul>{% endif %}
 {% if shared %}</div>{% else %}</a>{% endif %}

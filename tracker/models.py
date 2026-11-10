@@ -132,6 +132,23 @@ class Phase(VersionedModel):
     forecast_end = models.DateField(null=True, blank=True)
     actual_start = models.DateField(null=True, blank=True)
     actual_end = models.DateField(null=True, blank=True)
+    workstream_entity = models.UUIDField(null=True, blank=True, help_text="Workstream this belongs to; blank means the whole initiative")
+
+    class Meta(VersionedModel.Meta):
+        ordering = ["order"]
+
+    def __str__(self):
+        return self.name
+
+
+class Workstream(VersionedModel):
+    """A part of a larger initiative with its own lead, dates and status. Optional."""
+
+    initiative_entity = models.UUIDField(db_index=True)
+    name = models.CharField(max_length=100)
+    lead_emp_id = models.CharField(max_length=32, blank=True)
+    order = models.PositiveSmallIntegerField(default=0)
+    description = models.CharField(max_length=300, blank=True)
 
     class Meta(VersionedModel.Meta):
         ordering = ["order"]
@@ -157,6 +174,7 @@ class Milestone(VersionedModel):
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.PLANNED)
     is_key = models.BooleanField(default=False)
     note = models.TextField(blank=True)
+    workstream_entity = models.UUIDField(null=True, blank=True, help_text="Workstream this belongs to; blank means the whole initiative")
 
     class Meta(VersionedModel.Meta):
         ordering = ["planned"]
@@ -205,6 +223,7 @@ class RiskItem(VersionedModel):
     mitigation = models.TextField(blank=True)
     source = models.CharField(max_length=16, choices=Source.choices, default=Source.OWNER)
     visibility = models.CharField(max_length=16, choices=Visibility.choices, default=Visibility.EXEC)
+    workstream_entity = models.UUIDField(null=True, blank=True, help_text="Workstream this belongs to; blank means the whole initiative")
 
     class Meta(VersionedModel.Meta):
         pass
@@ -271,6 +290,7 @@ class ControlImpact(VersionedModel):
         null=True, blank=True, help_text="Key milestone the control must be ready by; blank means go-live"
     )
     visibility = models.CharField(max_length=16, choices=Visibility.choices, default=Visibility.EXEC)
+    workstream_entity = models.UUIDField(null=True, blank=True, help_text="Workstream this belongs to; blank means the whole initiative")
 
     class Meta(VersionedModel.Meta):
         pass
@@ -285,6 +305,7 @@ class Update(models.Model):
     text = models.TextField()
     change_diff = models.JSONField(default=dict, blank=True)
     visibility = models.CharField(max_length=16, choices=Visibility.choices, default=Visibility.EXEC)
+    workstream_entity = models.UUIDField(null=True, blank=True, help_text="Workstream this belongs to; blank means the whole initiative")
 
     class Meta:
         ordering = ["-posted_at"]

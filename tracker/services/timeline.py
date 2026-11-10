@@ -3,6 +3,8 @@
 from datetime import date
 from html import escape
 
+from django.urls import reverse
+
 from core import clock
 from tracker.lifecycle import color as stage_color
 from tracker.services.lifecycle import stage_infos
@@ -23,6 +25,13 @@ MS_COLOR = {
     Milestone.Status.PLANNED: "#0969da",
 }
 
+
+
+def person_name(emp_id):
+    from core.models import Person
+
+    p = Person.objects.filter(pk=emp_id).first()
+    return p.display_name if p else emp_id
 
 
 def _d(d):
@@ -97,6 +106,27 @@ def _phase_dates(ph):
     return ps, pe, fs, fe
 
 
+class _StageSpan:
+    """One bar per stage, spanning every workstream's phases in that stage."""
+
+    def __init__(self, stage, phases):
+        dates = [_phase_dates(ph) for ph in phases]
+        self.stage, self.name = stage, stage_infos()[stage].name
+        self.planned_start = min((d[0] for d in dates if d[0]), default=None)
+        self.planned_end = max((d[1] for d in dates if d[1]), default=None)
+        self.forecast_start = min((d[2] for d in dates if d[2]), default=None)
+        self.forecast_end = max((d[3] for d in dates if d[3]), default=None)
+        self.actual_start = self.actual_end = None
+
+
+def _lane_phases(b):
+    """Phases for a portfolio lane; initiatives with workstreams collapse to one bar per stage."""
+    if not b.workstreams:
+        return b.phases
+    stages = sorted({ph.stage for ph in b.phases})
+    return [_StageSpan(st, [ph for ph in b.phases if ph.stage == st]) for st in stages]
+
+
 def portfolio_window(bundles, months_before: int = 2) -> tuple[date, int]:
     """Window start (first of the month, `months_before` months back) and month count to the latest date."""
     today = clock.today()
@@ -111,8 +141,9 @@ def portfolio_window(bundles, months_before: int = 2) -> tuple[date, int]:
     return start, max(_months_between(start, end), 4)
 
 
-def portfolio_svg(bundles, evaluations: dict, start: date | None = None, months: int | None = None) -> str:
-    """One lane per initiative. `evaluations` maps entity_id -> Evaluation."""
+def portfolio_svg(bundles, evaluations: dict, start: date | None = None, months: int | None = None,
+                  link: bool = True) -> str:
+    """One lane per initiative; names link to the initiative page when `link`."""
     auto_start, auto_months = portfolio_window(bundles)
     start = start or auto_start
     months = months or auto_months
@@ -128,10 +159,14 @@ def portfolio_svg(bundles, evaluations: dict, start: date | None = None, months:
         color = "#6e7781" if init.status == Initiative.Status.PROPOSED else RAG_COLOR[ev.effective if ev else Rag.GREEN]
         name = init.name if len(init.name) <= 30 else init.name[:29] + "…"
         suffix = " (proposed)" if init.status == Initiative.Status.PROPOSED else ""
-        out.append(f'<text x="4" y="{y+16}" font-size="12.5" font-weight="600" fill="{color}">{escape(name)}{suffix}</text>')
+        label = f'<text x="4" y="{y+16}" font-size="12.5" font-weight="600" fill="{color}">{escape(name)}{suffix}</text>'
+        if link:
+            label = (f'<a href="{reverse("initiative", args=[b.entity_id])}" class="tl-link">'
+                     f'<title>Open {escape(init.name)}</title>{label}</a>')
+        out.append(label)
         if init.status == Initiative.Status.ACTIVE and ev and ev.effective == Rag.GREEN:
             out.append(f'<text x="4" y="{y+29}" font-size="10" fill="{RAG_COLOR[Rag.GREEN]}">✓ On track</text>')
-        for ph in b.phases:
+        for ph in _lane_phases(b):
             ps, pe, fs, fe = _phase_dates(ph)
             if not (ps and pe and fs and fe):
                 continue
@@ -162,6 +197,29 @@ def portfolio_svg(bundles, evaluations: dict, start: date | None = None, months:
     return "".join(out) + legend()
 
 
+WS_ROW_H = 22  # height of a workstream label row on the initiative timeline
+
+
+def _ws_layout(b):
+    """[('label', Workstream|None) | ('phase', Phase)]: phases grouped under workstream labels, if any."""
+    if not b.workstreams:
+        return [("phase", ph) for ph in b.phases]
+    out = []
+    own = b.own(b.phases)
+    if own:
+        out += [("label", None)] + [("phase", ph) for ph in own]
+    for ws in b.workstreams:
+        phases = b.scoped(b.phases, ws.entity_id)
+        if phases:
+            out += [("label", ws)] + [("phase", ph) for ph in phases]
+    return out
+
+
+def _ws_tip(b, item):
+    name = b.ws_name(item.workstream_entity) if item.workstream_entity else ""
+    return f"{name} · " if name else ""
+
+
 def _control_marks(b, sc, layers):
     """([(x, stack level, color, tooltip)], lane height) for controls with a due date."""
     lo, hi = sc.start, _month_start(sc.start, sc.months)
@@ -175,7 +233,7 @@ def _control_marks(b, sc, layers):
         x = sc.x(min(max(due, lo), hi))
         level = stacks[x] = stacks.get(x, -1) + 1
         who = f"{c.control_id} {c.name}" if c else "Unknown control"
-        tip = f"{who} · {i.get_readiness_display()} · needed by {label}, {_d(due)}"
+        tip = f"{_ws_tip(b, i)}{who} · {i.get_readiness_display()} · needed by {label}, {_d(due)}"
         marks.append((x, level, CTL_COLOR[i.readiness], tip))
     if not marks:
         return [], 0
@@ -196,9 +254,19 @@ def initiative_svg(b, layers=None) -> str:
     sc = Scale(start, months, left, W)
     ms = sorted([m for m in b.milestones if m.actual or m.forecast or m.planned],
                 key=lambda m: m.actual or m.forecast or m.planned)
-    ms_h = 90 if ms else 0
+    levels, last_x = [], []
+    for m in ms:  # stagger labels so neighbors never overlap
+        mx = sc.x(m.actual or m.forecast or m.planned)
+        lvl = next((i for i, lx in enumerate(last_x) if mx - lx >= 120), len(last_x))
+        if lvl == len(last_x):
+            last_x.append(mx)
+        last_x[lvl] = mx
+        levels.append(lvl)
+    ms_h = (68 + 22 * (max(levels) + 1)) if ms else 0
     ctl, ctl_h = _control_marks(b, sc, layers)
-    H = top + len(b.phases) * row_h + ctl_h + ms_h
+    layout = _ws_layout(b)
+    phases_h = sum(WS_ROW_H if kind == "label" else row_h for kind, _x in layout)
+    H = top + phases_h + ctl_h + ms_h
     out = [f'<svg viewBox="0 0 {W} {H+20}" width="100%">', sc.axis(top, H - top),
            sc.today_line(top, H)]
 
@@ -208,9 +276,21 @@ def initiative_svg(b, layers=None) -> str:
         return f'<text x="{x2+5:.1f}" y="{y+bar_h/2+3.5:.1f}" font-size="9.5" fill="{col}">{escape(txt)}</text>'
 
     infos = stage_infos()
-    for r, ph in enumerate(b.phases):
+    cursor = top
+    for kind, item in layout:
+        if kind == "label":
+            who = f" · {person_name(item.lead_emp_id)}" if item and item.lead_emp_id else ""
+            text = (item.name if item else "Whole initiative") + who
+            out.append(
+                f'<text x="4" y="{cursor+15}" font-size="11" font-weight="700" fill="#444">{escape(text)}</text>'
+                f'<line x1="4" y1="{cursor+19}" x2="{W-20}" y2="{cursor+19}" stroke="#ddd"/>'
+            )
+            cursor += WS_ROW_H
+            continue
+        ph = item
         ps, pe, fs, fe = _phase_dates(ph)
-        y = top + r * row_h + 6
+        y = cursor + 6
+        cursor += row_h
         st = infos[ph.stage]
         out.append(
             f'<text x="4" y="{y+bar_h+4}" font-size="12" font-weight="600" fill="{st.color}">{escape(ph.name)}</text>'
@@ -230,7 +310,7 @@ def initiative_svg(b, layers=None) -> str:
             out.append(label(f1, f2, y + bar_h + 6, txt, "#cf222e" if slip > 0 else "#444"))
 
     if ctl:
-        y = top + len(b.phases) * row_h + 18
+        y = top + phases_h + 18
         out.append(f'<text x="4" y="{y+6}" font-size="12" font-weight="600" fill="#444">Controls</text>'
                    f'<line x1="{left}" y1="{y+2}" x2="{W-20}" y2="{y+2}" stroke="#ccc"/>')
         for cx, level, color, tip in ctl:
@@ -241,17 +321,12 @@ def initiative_svg(b, layers=None) -> str:
             )
 
     if ms:
-        y = top + len(b.phases) * row_h + ctl_h + 18
+        y = top + phases_h + ctl_h + 18
         out.append(f'<text x="4" y="{y+6}" font-size="12" font-weight="600" fill="#444">Key milestones</text>'
                    f'<line x1="{left}" y1="{y+2}" x2="{W-20}" y2="{y+2}" stroke="#ccc"/>')
-        last_x = [-1e9, -1e9, -1e9]
-        for m in ms:
+        for m, lvl in zip(ms, levels):
             when = m.actual or m.forecast or m.planned
             mx, c = sc.x(when), MS_COLOR[m.status]
-            lvl = 0
-            while lvl < 2 and mx - last_x[lvl] < 110:
-                lvl += 1
-            last_x[lvl] = mx
             ly = y + 22 + lvl * 22
             slipped = m.status != Milestone.Status.DONE and not m.actual and m.forecast and m.planned and m.forecast != m.planned
             if slipped:
@@ -265,7 +340,7 @@ def initiative_svg(b, layers=None) -> str:
             was = f" (was {_short(m.planned)})" if slipped else ""
             out.append(
                 f'<polygon points="{mx:.1f},{y-5} {mx+7:.1f},{y+2} {mx:.1f},{y+9} {mx-7:.1f},{y+2}" fill="{c}" stroke="#fff">'
-                f'<title>{escape(m.name)} · {m.get_status_display()}</title></polygon>'
+                f'<title>{escape(_ws_tip(b, m))}{escape(m.name)} · {m.get_status_display()}</title></polygon>'
                 f'<line x1="{mx:.1f}" y1="{y+9}" x2="{mx:.1f}" y2="{ly-8}" stroke="#ccc"/>'
                 f'<text x="{mx:.1f}" y="{ly}" font-size="9.5" fill="{c}" text-anchor="middle">{escape(name)}</text>'
                 f'<text x="{mx:.1f}" y="{ly+10}" font-size="8.5" fill="#666" text-anchor="middle">{_short(when)}{was}</text>'

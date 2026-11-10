@@ -1,95 +1,53 @@
 {% extends "base.html" %}
-{% block title %}Intake form · IT Initiative Risk Tracker{% endblock %}
+{% block title %}{% if actor.is_tech_risk %}New initiative{% else %}Intake form{% endif %} · IT Initiative Risk Tracker{% endblock %}
 {% block content %}
-<h1>Intake form</h1>
-<p class="muted">Goes to the Tech Risk queue. On acceptance, the target go-live becomes the baseline.</p>
+<h1>{% if actor.is_tech_risk %}New initiative{% else %}Intake form{% endif %}</h1>
+<p class="muted">On acceptance, the target go-live becomes the baseline.</p>
 <form method="post" class="card" style="max-width:900px">{% csrf_token %}
   <div class="card-body">
     {{ form.non_field_errors }}
     <div class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label small muted mb-1" for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
-          {{ form.name }}
-          {% for e in form.name.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label small muted mb-1" for="{{ form.sponsor.id_for_label }}">{{ form.sponsor.label }}</label>
-          {{ form.sponsor }}
-          {% for e in form.sponsor.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-        </div>
-        <div class="col-12">
-          <label class="form-label small muted mb-1" for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
-          {{ form.description }}
-          {% for e in form.description.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label small muted mb-1" for="{{ form.owner_emp_id.id_for_label }}">{{ form.owner_emp_id.label }}</label>
-          {{ form.owner_emp_id }}
-          {% for e in form.owner_emp_id.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label small muted mb-1" for="{{ form.delegates.id_for_label }}">{{ form.delegates.label }}</label>
-          {{ form.delegates }}
-          {% for e in form.delegates.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-        </div>
-        <div class="col-12">
-          <label class="form-label small muted mb-1" for="{{ form.business_driver.id_for_label }}">{{ form.business_driver.label }}</label>
-          {{ form.business_driver }}
-          {% for e in form.business_driver.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label small muted mb-1" for="{{ form.target_go_live.id_for_label }}">{{ form.target_go_live.label }}</label>
-          {{ form.target_go_live }}
-          {% for e in form.target_go_live.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label small muted mb-1" for="{{ form.expected_systems.id_for_label }}">{{ form.expected_systems.label }}</label>
-          {{ form.expected_systems }}
-          {% for e in form.expected_systems.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-        </div>
+      <div class="col-md-6">{% include "tracker/partials/form_field.html" with f=form.name %}</div>
+      <div class="col-md-3">{% include "tracker/partials/form_field.html" with f=form.owner_emp_id %}</div>
+      <div class="col-md-3">{% include "tracker/partials/form_field.html" with f=form.target_go_live %}</div>
+      <div class="col-12">{% include "tracker/partials/form_field.html" with f=form.why_it_matters %}</div>
     </div>
 
-    <label class="form-label small muted mt-3 mb-1">Phases with planned dates</label>
-    <table class="table table-sm w-auto mb-1">
-      <thead><tr><th>Stage</th><th>Your phase name</th><th>Planned start</th><th>Planned end</th></tr></thead>
-      <tbody>
-      {% for r in phase_rows %}
-        <tr>
-          <td><span class="d-inline-block me-1" style="width:10px;height:10px;border-radius:2px;background:{{ r.stage.color }}"></span>{{ r.stage.number }}. {{ r.stage.name }}</td>
-          <td>{{ r.name }}{% for e in r.name.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
-          <td>{{ r.start }}{% for e in r.start.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
-          <td>{{ r.end }}{% for e in r.end.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    <p class="small muted">Phase names are editable. Rows without dates are skipped.</p>
-
-    <div class="row g-3">
-        <div class="col-12">
-          <label class="form-label small muted mb-1" for="{{ form.milestones.id_for_label }}">{{ form.milestones.label }}</label>
-          {{ form.milestones }}
-          <div class="small muted">One per line: Name | YYYY-MM-DD | key</div>
-          {% for e in form.milestones.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-        </div>
-        <div class="col-12">
-          <label class="form-label small muted mb-1" for="{{ form.risks.id_for_label }}">{{ form.risks.label }}</label>
-          {{ form.risks }}
-          <div class="small muted">One per line: title | H, M or L</div>
-          {% for e in form.risks.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-        </div>
-        <div class="col-12">
-          <label class="form-label small muted mb-1" for="{{ form.why_it_matters.id_for_label }}">{{ form.why_it_matters.label }}</label>
-          {{ form.why_it_matters }}
-          {% for e in form.why_it_matters.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-        </div>
-    </div>
-    <h2 class="h6 mt-3 mb-1">About this initiative</h2>
-    <div class="small muted mb-1">Select all that apply. Tech Risk sets the oversight level from your answers.</div>
+    <h2 class="h6 mt-3 mb-1">Which apply?</h2>
     {% for f in oversight_fields %}
     <div class="form-check">{{ f }} <label class="form-check-label" for="{{ f.id_for_label }}">{{ f.label }}</label></div>
     {% endfor %}
-    <div class="mt-3"><button class="btn btn-primary btn-sm">Submit to Tech Risk</button></div>
+
+    <details class="mt-3"{% if form.errors %} open{% endif %}>
+      <summary class="small" style="cursor:pointer;color:var(--accent)">More details (optional)</summary>
+      <div class="row g-3 mt-1">
+        <div class="col-md-6">{% include "tracker/partials/form_field.html" with f=form.sponsor %}</div>
+        <div class="col-md-6">{% include "tracker/partials/form_field.html" with f=form.delegates %}</div>
+        <div class="col-12">{% include "tracker/partials/form_field.html" with f=form.description %}</div>
+        <div class="col-md-6">{% include "tracker/partials/form_field.html" with f=form.business_driver %}</div>
+        <div class="col-md-6">{% include "tracker/partials/form_field.html" with f=form.expected_systems %}</div>
+      </div>
+      <label class="form-label small muted mt-3 mb-1">Phases (rows without dates are skipped)</label>
+      <table class="table table-sm w-auto mb-1">
+        <thead><tr><th>Stage</th><th>Phase name</th><th>Planned start</th><th>Planned end</th></tr></thead>
+        <tbody>
+        {% for r in phase_rows %}
+          <tr>
+            <td><span class="d-inline-block me-1" style="width:10px;height:10px;border-radius:2px;background:{{ r.stage.color }}"></span>{{ r.stage.number }}. {{ r.stage.name }}</td>
+            <td>{{ r.name }}{% for e in r.name.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
+            <td>{{ r.start }}{% for e in r.start.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
+            <td>{{ r.end }}{% for e in r.end.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <div class="row g-3">
+        <div class="col-md-6">{% include "tracker/partials/form_field.html" with f=form.milestones hint="One per line: Name | YYYY-MM-DD | key" %}</div>
+        <div class="col-md-6">{% include "tracker/partials/form_field.html" with f=form.risks hint="One per line: Title | H, M or L" %}</div>
+      </div>
+    </details>
+
+    <div class="mt-3"><button class="btn btn-primary btn-sm">{% if actor.is_tech_risk %}Create{% else %}Submit to Tech Risk{% endif %}</button></div>
   </div>
 </form>
 {% endblock %}

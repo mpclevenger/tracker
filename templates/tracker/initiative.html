@@ -2,94 +2,138 @@
 {% load ui %}
 {% block title %}{{ initiative.name }} · IT Initiative Risk Tracker{% endblock %}
 {% block content %}
-<div class="d-flex align-items-center mb-2">
-  <h1 class="m-0 flex-grow-1">{{ initiative.name }}
-    {% if ev.is_stale %}<span class="pill stale">No check-in · {{ ev.stale_days }}d</span>{% endif %}
-    {% if actor.sees_override_detail and ev.override %}<span class="pill override" hx-get="{% url 'override_modal' eid %}" hx-target="#modal" hx-swap="innerHTML">Overridden: {{ ev.derived|cap }} → {{ ev.effective|cap }} ›</span>{% endif %}
-  </h1>
-  {% if actor.sees_exec_pages %}<a href="{% url 'exec_summary' %}">← Exec summary</a>{% endif %}
-</div>
+{% if actor.sees_exec_pages %}<div class="small mb-1"><a href="{% url 'exec_summary' %}">← Exec summary</a></div>{% endif %}
 
-<div class="ini-sum">
-  <div class="ini-fact"><span class="l">RAG</span><span class="v">
-    {% if initiative.status == "proposed" %}<span class="pill outline">Proposed</span>
-    {% elif initiative.status == "closed" or initiative.status == "archived" %}<span class="pill outline">{{ initiative.get_status_display }}</span>
-    {% else %}{% rag_pill ev.effective %}{% if ev.chip %}<span class="ini-chip {{ ev.derived }}" title="{{ ev.rule }}">{{ ev.chip }}</span>{% endif %}{% endif %}
-  </span></div>
-  {% if initiative.sox_applicable %}<div class="ini-fact"><span class="l">Scope</span><span class="v"><span class="pill sox" title="Relevant to SOX">SOX</span></span></div>{% endif %}
-  <div class="ini-fact"><span class="l">Stage</span><span class="v">{{ stage.name }}</span></div>
-  <div class="ini-fact"><span class="l">Oversight</span><span class="v">
-    {% if actor.is_tech_risk %}<span class="pill ov-{{ initiative.oversight }}" title="{{ s.oversight_tip }}" hx-get="{% url 'oversight_modal' eid %}" hx-target="#modal" hx-swap="innerHTML">{{ initiative.oversight_label }}</span>
-    {% else %}<span class="pill ov-{{ initiative.oversight }}" title="{{ s.oversight_tip }}">{{ initiative.oversight_label }}</span>{% endif %}
-  </span></div>
-  <div class="ini-fact"><span class="l">Go-live</span><span class="v">{{ initiative.target_go_live|short_date }}
-    {% if s.slip > 0 %}· <span class="red" title="Versus baseline {{ initiative.baseline_go_live|short_date }}">slipped {{ s.slip }}d</span>
-    {% elif s.slip < 0 %}· <span title="Versus baseline {{ initiative.baseline_go_live|short_date }}">{{ s.slip_early }}d early</span>{% endif %}
-  </span></div>
-  <div class="ini-fact"><span class="l">Next milestone</span><span class="v">{% if s.next_milestone %}{{ s.next_milestone.name }} · {{ s.next_milestone.forecast|default:s.next_milestone.planned|short_date }}{% else %}—{% endif %}</span></div>
-  <div class="ini-fact" {% if s.due %}title="{% if s.last_update_at %}Last check-in {{ s.last_update_at|short_date }}{% else %}No check-in posted{% endif %}"{% endif %}><span class="l">Check-ins</span><span class="v">
-    {% if not s.due %}—
-    {% elif s.overdue %}<span class="red">Check-in overdue {{ s.overdue }}d</span>
-    {% else %}<span class="{% if s.due_soon %}amber{% endif %}">Check-in due {{ s.due|date:"M j" }}</span>{% endif %}
-  </span></div>
-  {% if can_check_in %}<button type="button" class="btn btn-primary btn-sm ms-auto" hx-get="{% url 'check_in' eid %}" hx-target="#modal" hx-swap="innerHTML">Check in</button>{% endif %}
+<div class="ini-head">
+  <div class="ini-head-main">
+    <div class="ini-l1">
+      <h1 class="m-0">{{ initiative.name }}</h1>
+      {% if initiative.sox_applicable %}<span class="pill sox" title="Relevant to SOX">SOX</span>{% endif %}
+      {% if actor.is_tech_risk %}<span class="pill ov-{{ initiative.oversight }}" title="{{ s.oversight_tip }}" hx-get="{% url 'oversight_modal' eid %}" hx-target="#modal" hx-swap="innerHTML">{{ initiative.oversight_label }}</span>
+      {% else %}<span class="pill ov-{{ initiative.oversight }}" title="{{ s.oversight_tip }}">{{ initiative.oversight_label }}</span>{% endif %}
+    </div>
+    <div class="ini-l2">
+      {% if initiative.status == "proposed" %}<span class="pill outline">Proposed</span>
+      {% elif initiative.status == "closed" or initiative.status == "archived" %}<span class="pill outline">{{ initiative.get_status_display }}</span>
+      {% else %}{% rag_pill ev.effective %}{% if ev.chip %}<span class="ini-why" title="{{ ev.rule }}">{{ ev.chip }}</span>{% endif %}{% endif %}
+      {% if actor.sees_override_detail and ev.override %}<span class="ini-ovr" title="Overridden: {{ ev.derived|cap }} → {{ ev.effective|cap }}" hx-get="{% url 'override_modal' eid %}" hx-target="#modal" hx-swap="innerHTML">Override</span>{% endif %}
+    </div>
+    <div class="ini-facts">
+      <div class="ini-fact"><span class="l">Stage</span><span class="v">{{ stage.name }}</span></div>
+      <div class="ini-fact"><span class="l">Go-live</span><span class="v">{{ initiative.target_go_live|short_date }}
+        {% if s.slip > 0 %}<span class="red" title="Versus baseline {{ initiative.baseline_go_live|short_date }}">slipped {{ s.slip }}d</span>
+        {% elif s.slip < 0 %}<span class="muted" title="Versus baseline {{ initiative.baseline_go_live|short_date }}">{{ s.slip_early }}d early</span>{% endif %}</span></div>
+      <div class="ini-fact"><span class="l">Next milestone</span><span class="v">{% if s.next_milestone %}{{ s.next_milestone.name }} · {{ s.next_milestone.forecast|default:s.next_milestone.planned|short_date }}{% else %}—{% endif %}</span></div>
+      <div class="ini-fact" {% if s.due %}title="{% if s.last_update_at %}Last check-in {{ s.last_update_at|short_date }}{% else %}No check-in posted{% endif %}"{% endif %}><span class="l">Next check-in</span><span class="v">
+        {% if not s.due %}—
+        {% elif s.overdue %}<span class="red">Overdue {{ s.overdue }}d</span>
+        {% else %}<span class="{% if s.due_soon %}amber{% endif %}">Due {{ s.due|date:"M j" }}</span>{% endif %}
+      </span></div>
+    </div>
+  </div>
+  <div class="ini-head-side">
+    {% if can_check_in %}<button type="button" class="btn btn-primary btn-sm" hx-get="{% url 'check_in' eid %}" hx-target="#modal" hx-swap="innerHTML">Check in</button>{% endif %}
+    {% if actor.is_tech_risk %}
+    <details class="ini-menu">
+      <summary class="btn btn-outline-secondary btn-sm">Actions ▾</summary>
+      <div class="ini-menu-panel">
+        {% if initiative.status == "active" %}
+          {% if ev.override %}<a href="#" class="ini-mi" hx-get="{% url 'override_modal' eid %}" hx-target="#modal" hx-swap="innerHTML" title="Reasoning, support and history">Override details</a>
+          {% else %}
+          <details class="ini-mi-sec"><summary class="ini-mi">Set override</summary>
+            <form method="post" action="{% url 'override_set' eid %}" class="ini-mi-form">{% csrf_token %}
+              <select name="value" class="form-select form-select-sm w-auto mb-2" aria-label="Override value">{% for v, l in rag_choices %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+              <label class="form-label mb-0 small">Reasoning</label>
+              <textarea name="reason" rows="2" class="form-control form-control-sm" required></textarea>
+              <label class="form-label mb-0 mt-2 small">Supporting evidence</label>
+              <textarea name="support" rows="2" class="form-control form-control-sm" required></textarea>
+              <label class="form-label mb-0 mt-2 small">Review by</label>
+              <input type="date" name="review_by" class="form-control form-control-sm w-auto" required>
+              <button class="btn btn-primary btn-sm mt-2">Set override</button>
+            </form></details>
+          <a href="#" class="ini-mi" hx-get="{% url 'override_modal' eid %}" hx-target="#modal" hx-swap="innerHTML" title="Past overrides">Override history</a>
+          {% endif %}
+        {% endif %}
+        <a href="#" class="ini-mi" hx-get="{% url 'oversight_modal' eid %}" hx-target="#modal" hx-swap="innerHTML">Oversight</a>
+        <a href="#" class="ini-mi" hx-get="{% url 'edit_people' eid %}" hx-target="#modal" hx-swap="innerHTML" title="Owner and delegates">People</a>
+        <a href="{% url 'edit_workstreams' eid %}" class="ini-mi" title="Parts of this initiative, each with a lead">Workstreams</a>
+        <hr class="my-1">
+        {% if initiative.status == "proposed" %}
+          <form method="post" action="{% url 'intake_accept' eid %}" class="ini-mi-form">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-primary btn-sm">Accept</button></form>
+          <form method="post" action="{% url 'intake_return' eid %}" class="ini-mi-form">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+            <input name="comments" class="form-control form-control-sm mb-1" placeholder="Comments for the owner" aria-label="Comments for the owner" required>
+            <button class="btn btn-outline-secondary btn-sm">Return</button></form>
+        {% elif initiative.status == "active" %}
+          <details class="ini-mi-sec"><summary class="ini-mi">Close initiative</summary>
+            <form method="post" action="{% url 'close_initiative' eid %}" class="ini-mi-form">{% csrf_token %}
+              <label class="form-label mb-0 small">Control readiness outcome (required)</label>
+              <textarea name="closure_control_outcome" rows="2" class="form-control form-control-sm" required></textarea>
+              <button class="btn btn-outline-danger btn-sm mt-2">Close</button>
+            </form></details>
+        {% elif initiative.status == "closed" %}
+          <form method="post" action="{% url 'archive_initiative' eid %}" class="ini-mi-form">{% csrf_token %}<button class="btn btn-outline-secondary btn-sm">Archive</button></form>
+        {% endif %}
+        <details class="ini-mi-sec"><summary class="ini-mi text-danger">Delete initiative</summary>
+          <form method="post" action="{% url 'delete_initiative' eid %}" class="ini-mi-form">{% csrf_token %}
+            <div class="small muted mb-1">Removes it from every page. History and past snapshots keep it.</div>
+            <label class="form-label mb-0 small" for="del-reason">Reason (required)</label>
+            <textarea id="del-reason" name="reason" rows="2" maxlength="180" class="form-control form-control-sm" required></textarea>
+            <label class="form-label mb-0 small mt-1" for="del-name">Type the initiative name to confirm</label>
+            <input id="del-name" name="confirm_name" class="form-control form-control-sm" autocomplete="off" required>
+            <button class="btn btn-outline-danger btn-sm mt-2">Delete</button>
+          </form></details>
+      </div>
+    </details>
+    {% endif %}
+  </div>
 </div>
 
 {% if initiative.intake_comments and initiative.status == "proposed" %}
 <div class="warn mb-2"><b>Returned by Tech Risk:</b> {{ initiative.intake_comments }}</div>
 {% endif %}
-{% if actor.is_tech_risk %}
-<div class="ini-actions">
-  {% if initiative.status == "archived" %}
-  {% elif initiative.status == "proposed" %}
-    <form method="post" action="{% url 'intake_accept' eid %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-primary btn-sm">Accept</button></form>
-    <form method="post" action="{% url 'intake_return' eid %}" class="d-flex gap-2">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><input name="comments" class="form-control form-control-sm" placeholder="Comments for the owner" required style="width:300px"><button class="btn btn-outline-secondary btn-sm">Return</button></form>
-  {% elif initiative.status == "active" %}
-    <details><summary class="small" style="cursor:pointer;color:var(--accent)">Close initiative…</summary>
-      <form method="post" action="{% url 'close_initiative' eid %}" class="mt-2">{% csrf_token %}
-        <label class="form-label mb-0 small">Control readiness outcome (required)</label>
-        <textarea name="closure_control_outcome" rows="2" class="form-control form-control-sm" required></textarea>
-        <button class="btn btn-outline-danger btn-sm mt-2">Close</button>
-      </form></details>
-  {% elif initiative.status == "closed" %}
-    <form method="post" action="{% url 'archive_initiative' eid %}">{% csrf_token %}<button class="btn btn-outline-secondary btn-sm py-0">Archive</button></form>
-  {% endif %}
-  <details><summary class="small" style="cursor:pointer;color:var(--accent)">Delete initiative…</summary>
-    <form method="post" action="{% url 'delete_initiative' eid %}" class="mt-2">{% csrf_token %}
-      <div class="small muted mb-1">Removes it from every page. History and past snapshots keep it.</div>
-      <label class="form-label mb-0 small" for="del-reason">Reason (required)</label>
-      <textarea id="del-reason" name="reason" rows="2" maxlength="180" class="form-control form-control-sm" required></textarea>
-      <label class="form-label mb-0 small mt-1" for="del-name">Type the initiative name to confirm</label>
-      <input id="del-name" name="confirm_name" class="form-control form-control-sm" autocomplete="off" required>
-      <button class="btn btn-outline-danger btn-sm mt-2">Delete</button>
-    </form></details>
-</div>
-{% endif %}
 
-<div class="tabs">{% for key, label in tabs %}<a href="{% url 'initiative' eid %}?tab={{ key }}" class="{% if key == tab %}on{% endif %}">{{ label }}</a>{% endfor %}</div>
+<div class="tabs ini-tabs">{% for key, label in tabs %}<a href="{% url 'initiative' eid %}?tab={{ key }}" class="{% if key == tab %}on{% endif %}">{{ label }}</a>{% endfor %}</div>
 
 {% if tab == "overview" %}
-<div class="small muted mb-2">Owner: {{ initiative.owner_emp_id|person }} · Delegates: {% for d in delegates %}{{ d|person }}{% if not forloop.last %}, {% endif %}{% empty %}none{% endfor %}
-  {% if actor.is_tech_risk %}· <a href="#" hx-get="{% url 'edit_people' eid %}" hx-target="#modal" hx-swap="innerHTML">Change</a>{% endif %}</div>
-{% if initiative.description %}<div class="muted small mb-2" title="{{ initiative.description }}{% if initiative.why_it_matters %} {{ initiative.why_it_matters }}{% endif %}">{{ initiative.description|truncatechars:160 }}</div>{% endif %}
-{% if initiative.status == "closed" and initiative.closure_control_outcome %}<div class="small mb-2"><b>Closure outcome:</b> {{ initiative.closure_control_outcome }}</div>{% endif %}
-
-<div class="card"><div class="card-body">
-  <h3 class="h6 mt-0">Highlights</h3>
-  {% if highlights %}<ul class="mb-0">{% for h in highlights %}<li>{{ h.text }}{% if actor.is_tech_risk and h.visibility != "exec" %}{% vis_tag h.visibility %}{% endif %}</li>{% endfor %}</ul>
+<section class="ini-sec">
+  <h2 class="h6">Highlights</h2>
+  {% if highlights %}<ul class="mb-0">{% for h in highlights %}<li>{{ h.text }}</li>{% endfor %}</ul>
   {% else %}<span class="muted small">None</span>{% endif %}
-  {% if not actor.is_tech_risk %}{% for o in commentary %}<div class="note {% if o.visibility == 'owner' %}owner{% endif %}">{{ o.text }}</div>{% endfor %}{% endif %}
-</div></div>
+  {% for o in commentary %}<div class="note {% if o.visibility == 'owner' %}owner{% endif %}">{{ o.text }}</div>{% endfor %}
+</section>
 
-<div class="card"><div class="card-body">
-  <h3 class="h6 mt-0">Latest check-in</h3>
-  {% if last_update %}<div class="small muted">{{ last_update.posted_at|short_date }} · {{ last_update.author_emp_id|person }}</div><div>{{ last_update.text }}</div>
+<section class="ini-sec">
+  <h2 class="h6">Why this status</h2>
+  {% if why_rows %}<ul class="mb-0">{% for level, chip, detail in why_rows %}<li>{{ chip }}{% if detail %} <span class="muted">· {{ detail }}</span>{% endif %}</li>{% endfor %}</ul>
+  {% else %}<span class="muted small">No rule triggered</span>{% endif %}
+</section>
+
+{% if ws_rows %}
+<section class="ini-sec">
+  <h2 class="h6">Workstreams</h2>
+  <table class="table table-sm align-middle mb-0">
+    <thead><tr><th>Workstream</th><th>Lead</th><th>Status</th><th>Next milestone</th><th>Last check-in</th></tr></thead>
+    <tbody>{% for r in ws_rows %}
+    <tr>
+      <td title="{{ r.ws.description }}"><b>{{ r.ws.name }}</b></td>
+      <td class="small">{{ r.ws.lead_emp_id|person|default:"—" }}</td>
+      <td>{% rag_pill r.ev.effective %}{% if r.ev.chip %} <span class="ini-why" title="{{ r.ev.rule }}">{{ r.ev.chip }}</span>{% endif %}</td>
+      <td class="small">{% if r.next %}{{ r.next.name }} · {{ r.next.forecast|default:r.next.planned|short_date }}{% else %}—{% endif %}</td>
+      <td class="small">{% if r.last %}{{ r.last|short_date }} ({{ r.last|days_ago }}){% else %}Never{% endif %}{% if r.overdue %} <span class="red" title="Check-in overdue">overdue {{ r.overdue }}d</span>{% endif %}</td>
+    </tr>{% endfor %}</tbody>
+  </table>
+</section>
+{% endif %}
+
+<section class="ini-sec">
+  <h2 class="h6">Latest check-in</h2>
+  {% if last_update %}<div class="small muted">{{ last_update.posted_at|short_date }} · {{ last_update.author_emp_id|person }}{% if last_update.workstream_entity in ws_names %} · {{ ws_names|get:last_update.workstream_entity }}{% endif %}</div><div>{{ last_update.text }}</div>
   {% else %}<span class="muted small">None posted</span>{% endif %}
-</div></div>
+</section>
 
 {% if open_followups %}
-<div class="card"><div class="card-body">
-  <h3 class="h6 mt-0">Open follow-ups</h3>
+<section class="ini-sec">
+  <h2 class="h6">Open follow-ups</h2>
   <table class="table table-sm align-middle mb-0">
     <thead><tr><th>Follow-up</th><th style="width:16%">Owner</th><th style="width:14%">Due</th><th style="width:14%"></th></tr></thead>
     <tbody>{% for f in open_followups %}
@@ -97,58 +141,51 @@
       <td>{% if f.is_overdue %}{% include "meetings/partials/overdue_pill.html" %}{% endif %}</td></tr>
     {% endfor %}</tbody>
   </table>
-</div></div>
+</section>
 {% endif %}
 
-{% if actor.is_tech_risk %}
-{% if initiative.status == "active" %}
-<div class="card"><div class="card-body">
-  <h3 class="h6 mt-0">RAG rules</h3>
-  {% for level, chip, detail in ev.fired %}<span class="ini-chip {{ level }}" title="{{ detail }}">{{ chip }}</span>{% empty %}<span class="muted small">None fired</span>{% endfor %}
-  <div class="mt-2 small">
-  {% if ev.override %}Override {% rag_pill ev.override.value %} · {{ ev.override.author_emp_id|person }}, {{ ev.override.effective_from|short_date }} · review by {{ ev.override.review_by|short_date }} ·
-    <a href="#" hx-get="{% url 'override_modal' eid %}" hx-target="#modal" hx-swap="innerHTML">reasoning &amp; support ›</a>
-  {% else %}
-    <details><summary style="cursor:pointer;color:var(--accent)">Set override…</summary>
-      <form method="post" action="{% url 'override_set' eid %}" class="mt-2">{% csrf_token %}
-        <select name="value" class="form-select form-select-sm w-auto mb-2" aria-label="Override value">{% for v, l in rag_choices %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
-        <label class="form-label mb-0">Reasoning</label>
-        <textarea name="reason" rows="2" class="form-control form-control-sm" required></textarea>
-        <label class="form-label mb-0 mt-2">Supporting evidence</label>
-        <textarea name="support" rows="2" class="form-control form-control-sm" required></textarea>
-        <label class="form-label mb-0 mt-2">Review by</label>
-        <input type="date" name="review_by" class="form-control form-control-sm w-auto" required>
-        <button class="btn btn-primary btn-sm mt-2">Set override</button>
-      </form></details>
-    <a href="#" hx-get="{% url 'override_modal' eid %}" hx-target="#modal" hx-swap="innerHTML">History</a>
-  {% endif %}
-  </div>
-</div></div>
-{% endif %}
+<section class="ini-sec">
+  <h2 class="h6">About</h2>
+  <dl class="kv mb-0">
+    <dt>Owner</dt><dd>{{ initiative.owner_emp_id|person }}</dd>
+    <dt>Delegates</dt><dd>{% for d in delegates %}{{ d|person }}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>
+    {% if initiative.sponsor %}<dt>Sponsor</dt><dd>{{ initiative.sponsor }}</dd>{% endif %}
+    {% if initiative.description %}<dt>Description</dt><dd>{{ initiative.description }}</dd>{% endif %}
+    {% if initiative.status == "closed" and initiative.closure_control_outcome %}<dt>Closure outcome</dt><dd>{{ initiative.closure_control_outcome }}</dd>{% endif %}
+  </dl>
+</section>
 
-<div class="card" style="border-color:var(--internal)"><div class="card-body">
-  <h3 class="h6 mt-0">Exec view</h3>
+{% elif tab == "exec" %}
+<section class="ini-sec">
+  <h2 class="h6">Exec tile preview</h2>
   <div class="tile {{ ev.effective }}" style="cursor:default">
     <h3>{{ initiative.name }}</h3>
     <div class="meta">{{ initiative.owner_emp_id|person }}{% if last_update %} · last check-in {{ last_update.posted_at|days_ago }}{% endif %}</div>
     <ul>{% for h in exec_highlights %}<li>{{ h.text }}</li>{% empty %}<li class="muted">No highlights</li>{% endfor %}</ul>
   </div>
-  <table class="table table-sm mt-2"><thead><tr><th>Highlights</th><th style="width:130px">Visibility</th><th style="width:110px"></th></tr></thead><tbody>
+</section>
+
+<section class="ini-sec">
+  <h2 class="h6">Highlights</h2>
+  <table class="table table-sm mb-2"><thead><tr><th>Highlight</th><th style="width:170px">Visibility</th><th style="width:110px"></th></tr></thead><tbody>
     {% for o in highlights %}
     <tr class="{% if o.visibility != 'exec' %}hidden-row{% endif %}"><td>{{ o.text }}</td>
       <td>{% include "tracker/partials/vis_select.html" with kind="overlay" item_entity=o.entity_id current=o.visibility %}</td>
       <td>
-        <button type="button" class="btn btn-sm btn-outline-secondary py-0" aria-label="Move up" hx-post="{% url 'overlay_move' eid o.entity_id 'up' %}" hx-swap="none">↑</button>
-        <button type="button" class="btn btn-sm btn-outline-secondary py-0" aria-label="Move down" hx-post="{% url 'overlay_move' eid o.entity_id 'down' %}" hx-swap="none">↓</button>
-        <button type="button" class="btn btn-sm btn-outline-secondary py-0" aria-label="Remove" hx-post="{% url 'overlay_remove' eid o.entity_id %}" hx-swap="none">×</button></td></tr>
+        <button type="button" class="btn btn-sm btn-outline-secondary py-0" aria-label="Move up" title="Move up" hx-post="{% url 'overlay_move' eid o.entity_id 'up' %}" hx-swap="none">↑</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary py-0" aria-label="Move down" title="Move down" hx-post="{% url 'overlay_move' eid o.entity_id 'down' %}" hx-swap="none">↓</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary py-0" aria-label="Remove" title="Remove" hx-post="{% url 'overlay_remove' eid o.entity_id %}" hx-swap="none">×</button></td></tr>
     {% empty %}<tr><td colspan="3" class="muted">None</td></tr>{% endfor %}
   </tbody></table>
-  <form method="post" action="{% url 'overlay_add' eid %}" hx-post="{% url 'overlay_add' eid %}" hx-swap="none" class="d-flex gap-2 mt-2">{% csrf_token %}
+  <form method="post" action="{% url 'overlay_add' eid %}" hx-post="{% url 'overlay_add' eid %}" hx-swap="none" class="d-flex gap-2">{% csrf_token %}
     <input type="hidden" name="type" value="highlight">
-    <input name="text" required class="form-control form-control-sm" placeholder="New highlight">
+    <input name="text" required class="form-control form-control-sm" placeholder="New highlight" aria-label="New highlight">
     <button class="btn btn-sm btn-outline-secondary">Add</button>
   </form>
-  <h3 class="h6 mt-3">Commentary &amp; notes</h3>
+</section>
+
+<section class="ini-sec">
+  <h2 class="h6">Commentary and notes</h2>
   {% for o in commentary %}
   <div class="note {% if o.visibility == 'internal' %}internal{% elif o.visibility == 'owner' %}owner{% endif %}">
     <span class="small muted">{{ o.get_type_display }}</span>
@@ -158,12 +195,11 @@
   <form method="post" action="{% url 'overlay_add' eid %}" hx-post="{% url 'overlay_add' eid %}" hx-swap="none" class="mt-2">{% csrf_token %}
     <select name="type" class="form-select form-select-sm w-auto mb-2" aria-label="Type">
       <option value="commentary">Commentary (exec-visible)</option><option value="internal_note">Internal note</option></select>
-    <textarea name="text" rows="2" required class="form-control form-control-sm" placeholder="Enter text"></textarea>
+    <textarea name="text" rows="2" required class="form-control form-control-sm" placeholder="Enter text" aria-label="Text"></textarea>
     <button class="btn btn-sm btn-outline-secondary mt-2">Add</button>
   </form>
   <div class="small muted mt-2">Last curated {% if bundle.last_curated %}{{ bundle.last_curated|short_date }}{% else %}never{% endif %}</div>
-</div></div>
-{% endif %}
+</section>
 
 {% elif tab == "plan" %}
 <div class="card"><div class="card-body timeline-scroll">{{ timeline_svg|safe_svg }}</div></div>
@@ -177,31 +213,44 @@
 </tbody></table>
 {% if can_edit %}<p class="small"><a href="{% url 'edit_initiative' eid %}">More edits</a>
   <span class="muted">·</span> <a href="{% url 'edit_phases' eid %}">Phases</a> <span class="muted">·</span> <a href="{% url 'edit_milestones' eid %}">Milestones</a>
-  <span class="muted">·</span> <a href="{% url 'edit_risks' eid %}">Risks</a> <span class="muted">·</span> <a href="{% url 'edit_controls' eid %}">Controls</a></p>{% endif %}
+  <span class="muted">·</span> <a href="{% url 'edit_risks' eid %}">Risks</a> <span class="muted">·</span> <a href="{% url 'edit_controls' eid %}">Controls</a>
+  <span class="muted">·</span> <a href="{% url 'edit_workstreams' eid %}">Workstreams</a></p>{% endif %}
 
 {% elif tab == "risks" %}
-<h2 class="sect">Risks, issues &amp; dependencies</h2>
-<table class="table table-sm"><thead><tr><th>Type</th><th>Title</th><th>Rating</th><th>Owner</th><th>Target</th><th>Status</th><th>Mitigation</th>{% if actor.is_tech_risk %}<th>Source</th><th>Visibility</th>{% endif %}</tr></thead><tbody>
+<section class="ini-sec">
+<h2 class="h6">Risks, issues and dependencies</h2>
+{% if actor.is_tech_risk %}
+<details class="ini-vis"><summary class="btn btn-outline-secondary btn-sm">Edit visibility</summary>
+  <ul class="ini-vis-list">{% for r in risks %}<li><span>{{ r.title }}</span>{% include "tracker/partials/vis_select.html" with kind="risk" item_entity=r.entity_id current=r.visibility %}</li>{% empty %}<li class="muted">None</li>{% endfor %}</ul>
+</details>
+{% endif %}
+<table class="table table-sm"><thead><tr><th>Type</th><th>Title</th><th>Rating</th><th>Owner</th><th>Target</th><th>Status</th><th>Mitigation</th></tr></thead><tbody>
   {% for r in risks %}
   <tr class="{% if actor.is_tech_risk and r.visibility != 'exec' %}hidden-row{% endif %}">
     <td>{{ r.get_type_display }}</td>
-    <td>{{ r.title }}{% if actor.is_tech_risk and r.visibility != "exec" %} <span class="tag internal">hidden from exec</span>{% endif %}</td>
+    <td>{{ r.title }}{% if actor.is_tech_risk %}{% if r.source == "tech_risk" %}<span class="tag" title="Added by Tech Risk">{{ r.get_source_display }}</span>{% endif %}{% if r.visibility != "exec" %}{% vis_tag r.visibility %}{% endif %}{% endif %}</td>
     <td>{% rating_pill r.rating %}</td><td>{{ r.owner }}</td><td>{{ r.target_date|short_date }}</td><td>{{ r.get_status_display }}</td>
     <td class="small">{{ r.mitigation }}</td>
-    {% if actor.is_tech_risk %}<td>{{ r.get_source_display }}</td><td>{% include "tracker/partials/vis_select.html" with kind="risk" item_entity=r.entity_id current=r.visibility %}</td>{% endif %}
   </tr>
-  {% empty %}<tr><td colspan="9" class="muted">None</td></tr>{% endfor %}
+  {% empty %}<tr><td colspan="7" class="muted">None</td></tr>{% endfor %}
 </tbody></table>
+</section>
 
-<h2 class="sect">Control impact</h2>
-<table class="table table-sm"><thead><tr><th>Control</th><th>Framework</th><th>Impact</th><th>Compensating control</th><th>Readiness</th><th>Evidence</th>{% if actor.is_tech_risk %}<th>Review</th><th>Visibility</th>{% endif %}</tr></thead><tbody>
+<section class="ini-sec">
+<h2 class="h6">Control impact</h2>
+{% if actor.is_tech_risk %}
+<details class="ini-vis"><summary class="btn btn-outline-secondary btn-sm">Edit visibility</summary>
+  <ul class="ini-vis-list">{% for row in impact_rows %}<li><span>{{ row.control.control_id }} · {{ row.control.name }}</span>{% include "tracker/partials/vis_select.html" with kind="impact" item_entity=row.impact.entity_id current=row.impact.visibility %}</li>{% empty %}<li class="muted">None</li>{% endfor %}</ul>
+</details>
+{% endif %}
+<table class="table table-sm"><thead><tr><th>Control</th><th>Framework</th><th>Impact</th><th>Compensating control</th><th>Readiness</th><th>Evidence</th>{% if actor.is_tech_risk %}<th>Review</th>{% endif %}</tr></thead><tbody>
   {% for row in impact_rows %}
   <tr class="{% if actor.is_tech_risk and row.impact.visibility != 'exec' %}hidden-row{% endif %}">
-    <td>{% if row.control.trac_url %}<a href="{{ row.control.trac_url }}" target="_blank" rel="noopener" title="Guidance in TRAC"><b>{{ row.control.control_id }}</b></a>{% else %}<b>{{ row.control.control_id }}</b>{% endif %}<br><span class="small">{{ row.control.name }}</span><br><span class="small muted" title="Date the control must be ready by">Needed by: {{ row.due.0 }}{% if row.due.1 %} · {{ row.due.1|short_date }}{% endif %}</span>{% if actor.is_tech_risk and row.impact.visibility != "exec" %} <span class="tag internal">hidden from exec</span>{% endif %}</td>
+    <td>{% if row.control.trac_url %}<a href="{{ row.control.trac_url }}" target="_blank" rel="noopener" title="Guidance in TRAC"><b>{{ row.control.control_id }}</b></a>{% else %}<b>{{ row.control.control_id }}</b>{% endif %}{% if actor.is_tech_risk and row.impact.visibility != "exec" %}{% vis_tag row.impact.visibility %}{% endif %}<br><span class="small">{{ row.control.name }}</span><br><span class="small muted" title="Date the control must be ready by">Needed by: {{ row.due.0 }}{% if row.due.1 %} · {{ row.due.1|short_date }}{% endif %}</span></td>
     <td>{{ row.control.framework }}</td><td>{{ row.impact.get_impact_type_display }}</td>
     <td class="small">{{ row.impact.compensating_control|default:"—" }}</td>
-    <td>{% readiness_pill row.impact.readiness %}{% if row.impact.readiness == "sent_back" and row.impact.review_comment and not actor.is_senior_management %}<div class="ini-ctl-comment">{{ row.impact.review_comment }}</div>{% endif %}</td>
-    <td>{% if row.impact.evidence_link %}<a href="{{ row.impact.evidence_link }}" target="_blank" rel="noopener">link</a>{% else %}—{% endif %}</td>
+    <td>{% readiness_pill row.impact.readiness row.impact.get_readiness_display %}{% if row.impact.readiness == "sent_back" and row.impact.review_comment and not actor.is_senior_management %}<div class="ini-ctl-comment">{{ row.impact.review_comment }}</div>{% endif %}</td>
+    <td>{% if row.impact.evidence_link %}<a href="{{ row.impact.evidence_link }}" target="_blank" rel="noopener">Evidence</a>{% else %}—{% endif %}</td>
     {% if actor.is_tech_risk %}
     <td>{% if row.impact.readiness == "submitted" %}
       <form method="post" action="{% url 'review_control' eid row.impact.entity_id %}" class="ini-review">{% csrf_token %}
@@ -209,11 +258,11 @@
         <button name="action" value="accept" class="btn btn-sm btn-primary py-0">Accept</button>
         <button name="action" value="send_back" class="btn btn-sm btn-outline-secondary py-0">Send back</button>
       </form>{% endif %}</td>
-    <td>{% include "tracker/partials/vis_select.html" with kind="impact" item_entity=row.impact.entity_id current=row.impact.visibility %}</td>
     {% endif %}
   </tr>
-  {% empty %}<tr><td colspan="8" class="muted">None</td></tr>{% endfor %}
+  {% empty %}<tr><td colspan="7" class="muted">None</td></tr>{% endfor %}
 </tbody></table>
+</section>
 
 {% elif tab == "lifecycle" %}
 {% include "tracker/partials/stage_panel.html" %}
@@ -224,7 +273,7 @@
 {% elif tab == "history" %}
 {% for u in updates %}
 <div class="card"><div class="card-body">
-  <div class="small muted">{{ u.posted_at|date:"M j, Y H:i" }} · {{ u.author_emp_id|person }}</div>
+  <div class="small muted">{{ u.posted_at|date:"M j, Y H:i" }} · {{ u.author_emp_id|person }}{% if u.workstream_entity in ws_names %} · {{ ws_names|get:u.workstream_entity }}{% endif %}</div>
   <div>{{ u.text }}</div>
   {% if u.change_diff %}<div class="small diff mt-1">{% for key, pair in u.change_diff.items %}<div>{{ key }}: <del>{{ pair.0 }}</del> → <ins>{{ pair.1 }}</ins></div>{% endfor %}</div>{% endif %}
 </div></div>

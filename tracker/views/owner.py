@@ -11,6 +11,7 @@ from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
 
 from core.auth.decorators import forbidden
+from core.models import Person
 from tracker.lifecycle import STAGE_CHOICES
 from tracker.models import (
     Control,
@@ -19,8 +20,9 @@ from tracker.models import (
     Milestone,
     Phase,
     RiskItem,
+    Workstream,
 )
-from tracker.services import checkin, rag
+from tracker.services import checkin, rag, workstreams as ws_svc
 from tracker.services.bundle import load_bundle
 from tracker.views.common import get_initiative, require_editor_or_403
 from tracker.visibility import initiatives_for, items_for
@@ -100,10 +102,10 @@ class CheckInForm(forms.Form):
         style_fields(self)
 
 
-def _check_in_rows(bundle, data=None):
-    """Controls not yet Ready, with the submitted choice and evidence when a POST is being re-shown."""
+def _check_in_rows(bundle, data=None, ws=None):
+    """Controls not yet Ready in the chosen scope, with the submitted choice and evidence when a POST is being re-shown."""
     rows = []
-    for impact in bundle.impacts:
+    for impact in bundle.scoped(bundle.impacts, ws.entity_id if ws else None):
         if impact.readiness == ControlImpact.Readiness.READY:
             continue
         key = str(impact.entity_id)
@@ -131,28 +133,48 @@ def _read_controls(rows):
     return chosen
 
 
+def _check_in_scopes(actor, bundle):
+    """Workstreams this actor may check in for, and whether the whole initiative is allowed."""
+    if actor.is_tech_risk or bundle.entity_id not in actor.led_initiatives:
+        return list(bundle.workstreams), True
+    return [w for w in bundle.workstreams if w.lead_emp_id == actor.emp_id], False
+
+
 def check_in(request, entity_id):
     """Check-in modal: what changed, go-live, next key milestone, control readiness and a new risk."""
-    init, denied = _editable(request, entity_id)
-    if denied:
-        return denied
+    init = get_initiative(request, entity_id)
+    if not request.actor.can_check_in(entity_id):
+        return forbidden(request, "Only the initiative owner, a delegate, a workstream lead or Tech Risk can check in.")
     if init.status != Initiative.Status.ACTIVE:
         raise Http404("Check-ins are for active initiatives")
     bundle = load_bundle(init)
-    milestone = bundle.next_milestone(key_only=True)
-    baseline = (milestone.forecast or milestone.planned) if milestone else None
     posted = request.method == "POST"
+    params = request.POST if posted else request.GET
+    allowed, whole_ok = _check_in_scopes(request.actor, bundle)
+    by_id = {str(w.entity_id): w for w in allowed}
+    if "ws" in params:
+        chosen = params.get("ws", "")
+        ws = by_id.get(chosen)
+        if (chosen and ws is None) or (not chosen and not whole_ok):
+            return forbidden(request, "You cannot check in for that workstream.")
+    else:
+        ws = next((w for w in allowed if w.lead_emp_id == request.actor.emp_id), None) if bundle.workstreams else None
+        if ws is None and not whole_ok and allowed:
+            ws = allowed[0]
+    ws_entity = ws.entity_id if ws else None
+    milestone = bundle.next_milestone(key_only=True, ws=ws_entity)
+    baseline = (milestone.forecast or milestone.planned) if milestone else None
     if posted:
         form = CheckInForm(request.POST)
-        rows = _check_in_rows(bundle, request.POST)
+        rows = _check_in_rows(bundle, request.POST, ws)
         controls = _read_controls(rows)
         if form.is_valid() and not any(r["error"] for r in rows):
             d = form.cleaned_data
             try:
                 checkin.post_check_in(
-                    init, request.actor.emp_id, d["text"], go_live=d["go_live"],
+                    init, request.actor.emp_id, d["text"], go_live=None if ws else d["go_live"],
                     milestone=milestone, forecast=None if d["forecast"] == baseline else d["forecast"],
-                    pct_complete=d["pct_complete"], controls=controls,
+                    pct_complete=d["pct_complete"], controls=controls, workstream=ws,
                     new_risk=(d["risk_title"], d["risk_rating"] or RiskItem.Rating.MEDIUM) if d["risk_title"] else None,
                 )
             except ValueError as exc:
@@ -161,14 +183,16 @@ def check_in(request, entity_id):
                 return HttpResponse(status=204, headers={"HX-Refresh": "true"})
     else:
         form = CheckInForm(initial={
+            "text": request.GET.get("text", ""),
             "go_live": init.target_go_live, "forecast": baseline,
             "pct_complete": milestone.pct_complete if milestone else None,
             "risk_rating": RiskItem.Rating.MEDIUM,
         })
-        rows = _check_in_rows(bundle)
+        rows = _check_in_rows(bundle, ws=ws)
     return render(request, "tracker/partials/checkin_modal.html", {
         "initiative": init, "eid": entity_id, "form": form, "rows": rows, "milestone": milestone,
         "choices": [(c.value, c.label) for c in checkin.OWNER_CONTROL_CHOICES],
+        "workstream": ws, "ws_options": allowed if bundle.workstreams else [], "whole_ok": whole_ok,
     })
 
 
@@ -234,6 +258,7 @@ class RowForm(forms.Form):
     required_fields = ()
     entity_id = forms.UUIDField(required=False, widget=forms.HiddenInput)
     delete = forms.BooleanField(required=False)
+    workstream_entity = forms.TypedChoiceField(required=False, coerce=_to_uuid, empty_value=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -317,6 +342,31 @@ class ControlRow(RowForm):
         return data
 
 
+class WorkstreamRow(RowForm):
+    required_fields = ("name",)
+    name = forms.CharField(required=False, max_length=100)
+    lead_emp_id = forms.ChoiceField(required=False)
+    order = forms.IntegerField(required=False, min_value=0, widget=forms.NumberInput(attrs={"style": "width:4.5em"}))
+    description = forms.CharField(required=False, max_length=300)
+
+
+def _workstream_items(init, actor):
+    return Workstream.objects.current().filter(initiative_entity=init.entity_id).order_by("order", "name")
+
+
+def _workstream_choices(init):
+    rows = Workstream.objects.current().filter(initiative_entity=init.entity_id).order_by("order", "name")
+    return [("", "Whole initiative")] + [(str(w.entity_id), w.name) for w in rows]
+
+
+def _lead_choices(items):
+    people = {p.emp_id: p.display_name for p in Person.objects.all()}
+    for w in items:
+        if w.lead_emp_id and w.lead_emp_id not in people:
+            people[w.lead_emp_id] = w.lead_emp_id
+    return [("", EMPTY)] + [(emp, name) for emp, name in sorted(people.items(), key=lambda p: p[1])]
+
+
 def _phase_items(init, actor):
     return Phase.objects.current().filter(initiative_entity=init.entity_id).order_by("order")
 
@@ -385,7 +435,7 @@ def _apply_rows(request, init, cfg, items_by_entity, formset):
         if eid:
             item = items_by_entity[eid]
             if data.get("delete"):
-                item.retire(actor.emp_id)
+                cfg.get("retire", lambda i, who: i.retire(who))(item, actor.emp_id)
                 retired += 1
                 continue
             changes = {
@@ -401,7 +451,7 @@ def _apply_rows(request, init, cfg, items_by_entity, formset):
             if data.get("delete") or not form.has_changed():
                 continue
             values = {f: data[f] for f in cfg["fields"] if data.get(f) not in (None,)}
-            if cfg["model"] is Phase and values.get("order") is None:
+            if cfg["model"] in (Phase, Workstream) and values.get("order") is None:
                 values["order"] = next_order
                 next_order += 1
             values.update(cfg["create_extra"](actor))
@@ -456,6 +506,14 @@ ROW_PAGES = {
         ],
         "create_extra": lambda actor: {},
     },
+    "workstreams": {
+        "model": Workstream, "form": WorkstreamRow, "items": _workstream_items, "title": "Edit workstreams",
+        "label": "Workstreams",
+        "help": "Parts of a larger initiative, each with a lead. Retiring one moves its items back to the whole initiative.",
+        "columns": [("name", "Workstream"), ("lead_emp_id", "Lead"), ("order", "Order"), ("description", "Description")],
+        "create_extra": lambda actor: {},
+        "retire": ws_svc.remove,
+    },
 }
 for _cfg in ROW_PAGES.values():
     _cfg["fields"] = [n for n, _ in _cfg["columns"]]
@@ -466,8 +524,13 @@ def _edit_rows(request, entity_id, key):
     init, denied = _editable(request, entity_id)
     if denied:
         return denied
-    cfg = ROW_PAGES[key]
+    cfg = dict(ROW_PAGES[key])
     items = list(cfg["items"](init, request.actor))
+    ws_choices = _workstream_choices(init)
+    tagged = key != "workstreams" and len(ws_choices) > 1
+    if tagged:
+        cfg["columns"] = cfg["columns"] + [("workstream_entity", "Workstream")]
+        cfg["fields"] = cfg["fields"] + ["workstream_entity"]
     by_entity = {i.entity_id: i for i in items}
     initial = [_row_initial(i, cfg["fields"]) for i in items]
     FormSet = cfg["formset_class"]
@@ -475,6 +538,9 @@ def _edit_rows(request, entity_id, key):
     def build(*args, **kwargs):
         fs = FormSet(*args, initial=initial, prefix="rows", **kwargs)
         for form in fs.forms:
+            form.fields["workstream_entity"].choices = ws_choices
+            if "lead_emp_id" in form.fields:
+                form.fields["lead_emp_id"].choices = _lead_choices(items)
             if "phase_entity" in form.fields:
                 form.fields["phase_entity"].choices = _phase_choices(init)
             if "needed_by_milestone" in form.fields:
@@ -534,3 +600,8 @@ def edit_risks(request, entity_id):
 def edit_controls(request, entity_id):
     """Table editor for control impacts."""
     return _edit_rows(request, entity_id, "controls")
+
+
+def edit_workstreams(request, entity_id):
+    """Table editor for workstreams: add, rename, reorder, set the lead and remove."""
+    return _edit_rows(request, entity_id, "workstreams")

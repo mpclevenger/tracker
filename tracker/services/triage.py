@@ -36,6 +36,8 @@ class Row:
     action: str = "curate"  # curate | decide | review | remind
     tab: str = "overview"  # initiative page tab the row opens
     reminder: str = ""  # prefilled reminder text for "remind" rows
+    person: str = ""  # emp id shown instead of the owner (a workstream lead)
+    ws: object = None  # workstream entity for per-workstream rows
     watch: bool = False  # watch list row: links to the watch item page
 
 
@@ -111,6 +113,14 @@ def triage(followups: bool = True, scope: str = "all", watch_list: bool = True) 
             rows["Chase"].append(Row(
                 b, f"Check-in overdue {overdue}d", due, "red" if ev.is_stale else "amber", "remind",
                 reminder=reminder_text(b)))
+        for ws in b.workstreams:
+            due, overdue = checkin.check_in_due(b, ws)
+            if overdue:
+                stale = rag.stale_days(b, ws) or 0
+                rows["Chase"].append(Row(
+                    b, f"{ws.name}: check-in overdue {overdue}d", due,
+                    "red" if stale > t["red_stale_days"] else "amber", "remind",
+                    reminder=reminder_text(b, ws=ws), person=ws.lead_emp_id or init.owner_emp_id, ws=ws.entity_id))
         for f in followups_by_initiative.get(b.entity_id, []):
             rows["Chase"].append(Row(b, f"Follow-up overdue {f.days_overdue}d: {f.text[:80]}", f.due_date, "red"))
 
@@ -130,13 +140,15 @@ def triage(followups: bool = True, scope: str = "all", watch_list: bool = True) 
     return rows, quiet
 
 
-def reminder_text(bundle, base_url: str = "") -> str:
-    """Two-line nudge Tech Risk can paste into Teams or email."""
+def reminder_text(bundle, base_url: str = "", ws=None) -> str:
+    """Two-line nudge Tech Risk can paste into Teams or email; for a workstream it addresses the lead."""
     from core.models import Person
 
-    owner = Person.objects.filter(pk=bundle.initiative.owner_emp_id).first()
+    emp_id = (ws.lead_emp_id or bundle.initiative.owner_emp_id) if ws else bundle.initiative.owner_emp_id
+    owner = Person.objects.filter(pk=emp_id).first()
     first = owner.display_name.split()[0] if owner else "there"
-    return (f"Hello {first}, your check-in for {bundle.initiative.name} is overdue.\n"
+    what = f"{ws.name} check-in" if ws else "check-in"
+    return (f"Hello {first}, your {what} for {bundle.initiative.name} is overdue.\n"
             f"Please complete it here: {settings.SITE_URL or base_url}/initiative/{bundle.entity_id}/")
 
 

@@ -1,5 +1,5 @@
 /* initiative page */
-.ini-sum { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 9px 14px; margin-bottom: 12px; }
+
 .ini-fact { display: flex; flex-direction: column; line-height: 1.25; }
 .ini-fact .l { color: var(--muted); font-size: 11.5px; }
 .ini-fact .v { font-size: 13.5px; }
@@ -13,7 +13,7 @@
 .pill.ov-standard { background: var(--accent); }
 .pill.ov-light { background: var(--grey); }
 a.pill, .pill[hx-get] { text-decoration: none; cursor: pointer; }
-.ini-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+
 .ini-ctl-comment { color: #7d4e00; font-size: 12px; }
 .ini-review { display: flex; gap: 4px; align-items: center; min-width: 260px; }
 .ini-review input { flex: 1; }
@@ -21,3 +21,39 @@ a.pill, .pill[hx-get] { text-decoration: none; cursor: pointer; }
 .ini-modal-row label.form-label { margin-bottom: 2px; font-size: 12.5px; color: var(--muted); }
 .ini-radios { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; }
 .ini-radios input[type=url] { max-width: 280px; }
+
+/* header */
+.ini-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
+.ini-head-main { flex: 1; min-width: 0; }
+.ini-head-side { display: flex; align-items: center; gap: 8px; }
+.ini-l1 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ini-l1 .pill { font-size: 11px; padding: 0 7px; }
+.ini-l2 { margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ini-why { cursor: help; }
+.ini-ovr { color: var(--muted); font-size: 12.5px; cursor: pointer; text-decoration: underline dotted; }
+.ini-facts { display: flex; flex-wrap: wrap; gap: 6px 28px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+.ini-fact .v .red, .ini-fact .v .muted { margin-left: 4px; }
+.ini-fact .red { color: var(--red); }
+.ini-fact .amber { color: var(--amber); }
+
+/* actions menu */
+.ini-menu { position: relative; }
+.ini-menu > summary { list-style: none; cursor: pointer; }
+.ini-menu > summary::-webkit-details-marker { display: none; }
+.ini-menu[open] > summary { background: #f3f4f6; }
+.ini-menu-panel { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; width: 340px; background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.14); padding: 4px; }
+.ini-mi { display: block; padding: 5px 10px; border-radius: 5px; color: var(--ink); text-decoration: none; cursor: pointer; list-style: none; }
+.ini-mi:hover { background: #f3f4f6; color: var(--ink); }
+.ini-mi-sec > summary::-webkit-details-marker { display: none; }
+.ini-mi-form { padding: 4px 10px 8px; }
+
+/* sections and tabs */
+.ini-sec { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; }
+.ini-sec h2.h6 { margin: 0 0 8px; font-weight: 600; }
+.ini-sec .tile { max-width: 520px; }
+.ini-tabs a { padding: 5px 14px; font-size: 13px; }
+.ini-vis { margin-bottom: 8px; }
+.ini-vis > summary { list-style: none; cursor: pointer; display: inline-block; }
+.ini-vis > summary::-webkit-details-marker { display: none; }
+.ini-vis-list { list-style: none; margin: 8px 0 0; padding: 8px 12px; background: #f6f8fa; border-radius: 6px; max-width: 640px; }
+.ini-vis-list li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 3px 0; }

@@ -75,7 +75,9 @@ def reminder_modal(request, entity_id):
     if (denied := require_tech_risk_or_403(request)):
         return denied
     init = get_initiative(request, entity_id)
-    text = triage_svc.reminder_text(load_bundle(init), request.build_absolute_uri("/").rstrip("/"))
+    bundle = load_bundle(init)
+    ws = next((w for w in bundle.workstreams if str(w.entity_id) == request.GET.get("ws")), None)
+    text = triage_svc.reminder_text(bundle, request.build_absolute_uri("/").rstrip("/"), ws=ws)
     return render(request, "tracker/partials/reminder_modal.html", {
         "initiative": init, "text": text, "rows": text.count("\n") + 3,
     })

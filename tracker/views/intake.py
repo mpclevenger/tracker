@@ -92,8 +92,9 @@ def parse_emp_ids(text):
 
 
 class IntakeForm(forms.Form):
-    name = forms.CharField(max_length=200)
-    sponsor = forms.CharField(required=False, max_length=200)
+    name = forms.CharField(max_length=200, label="Initiative name",
+                           widget=forms.TextInput(attrs={"placeholder": "e.g. SailPoint onboarding"}))
+    sponsor = forms.CharField(required=False, max_length=200, label="Sponsor (name or role)")
     description = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 2}))
     owner_emp_id = forms.CharField(max_length=32, label="Owner (employee ID)")
     delegates = forms.CharField(required=False, label="Delegates (employee IDs, comma-separated)")
@@ -110,7 +111,7 @@ class IntakeForm(forms.Form):
         required=False, label="Known risks", widget=forms.Textarea(attrs={
             "rows": 3, "placeholder": "Vendor connector delivery slips | H"})
     )
-    why_it_matters = forms.CharField(label="Why it matters to risk / controls", widget=forms.Textarea(attrs={"rows": 2}))
+    why_it_matters = forms.CharField(label="Why it matters to risk and controls", widget=forms.Textarea(attrs={"rows": 2}))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -193,9 +194,12 @@ def intake_form(request):
         form = IntakeForm(request.POST)
         if form.is_valid():
             with transaction.atomic():
-                _create_intake(actor, form.cleaned_data)
+                init = _create_intake(actor, form.cleaned_data)
+            if actor.is_tech_risk:
+                messages.success(request, f'Created "{init.name}". Accept it to make it active.')
+                return redirect("initiative", init.entity_id)
             messages.success(request, "Submitted to the Tech Risk queue")
-            return redirect("workbench" if actor.is_tech_risk else "my_initiative")
+            return redirect("my_initiative")
     else:
         form = IntakeForm(initial={"owner_emp_id": actor.emp_id})
     return render(request, "tracker/intake.html", {"nav": "intake", "form": form, "phase_rows": form.phase_rows(),

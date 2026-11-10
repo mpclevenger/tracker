@@ -1,6 +1,6 @@
 """The Actor is the resolved identity + permissions for the current request."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from uuid import UUID
 
 from core.models import Person, Role, RoleAssignment
@@ -12,6 +12,7 @@ class Actor:
     display_name: str = ""
     roles: frozenset = field(default_factory=frozenset)
     owned_initiatives: frozenset = field(default_factory=frozenset)
+    led_initiatives: frozenset = field(default_factory=frozenset)  # subset of owned: led only, not owned or delegated
 
     @property
     def is_authenticated(self):
@@ -64,6 +65,10 @@ class Actor:
         return frozenset(layers)
 
     def can_edit_initiative(self, initiative_entity: UUID) -> bool:
+        """Edit the plan and manage workstreams: Tech Risk, the owner and delegates, not workstream leads."""
+        return self.is_tech_risk or (self.is_owner_of(initiative_entity) and initiative_entity not in self.led_initiatives)
+
+    def can_check_in(self, initiative_entity: UUID) -> bool:
         return self.is_tech_risk or self.is_owner_of(initiative_entity)
 
 
@@ -74,7 +79,7 @@ def resolve_actor(emp_id: str | None) -> Actor:
     if not emp_id:
         return ANONYMOUS
     # Imported here to avoid an import cycle with tracker.models at startup.
-    from tracker.models import Delegation, Initiative
+    from tracker.models import Delegation, Initiative, Workstream
 
     person = Person.objects.filter(pk=emp_id).first()
     roles = frozenset(
@@ -98,21 +103,26 @@ def resolve_actor(emp_id: str | None) -> Actor:
         .filter(emp_id=emp_id, role=Role.OWNER, initiative_entity__isnull=False)
         .values_list("initiative_entity", flat=True)
     )
+    led = set(
+        Workstream.objects.current().filter(lead_emp_id=emp_id).values_list("initiative_entity", flat=True)
+    ) - owned
+    owned.update(led)
     return Actor(
         emp_id=emp_id,
         display_name=person.display_name if person else emp_id,
         roles=roles,
         owned_initiatives=frozenset(owned),
+        led_initiatives=frozenset(led),
     )
 
 
 def apply_modules(actor: Actor, modules: dict) -> Actor:
     """Drop auditor and owner rights for switched-off modules; Tech Risk is unchanged."""
-    roles, owned = actor.roles, actor.owned_initiatives
+    roles, owned, led = actor.roles, actor.owned_initiatives, actor.led_initiatives
     if not modules.get("audit", True):
         roles = roles - {Role.AUDITOR}
     if not modules.get("owner_access", True) and not actor.is_tech_risk:
-        owned = frozenset()
+        owned, led = frozenset(), frozenset()
     if roles == actor.roles and owned == actor.owned_initiatives:
         return actor
-    return Actor(emp_id=actor.emp_id, display_name=actor.display_name, roles=roles, owned_initiatives=owned)
+    return replace(actor, roles=roles, owned_initiatives=owned, led_initiatives=led)

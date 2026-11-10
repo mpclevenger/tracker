@@ -19,3 +19,5 @@
 .sq { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
 .sq.green { background: var(--green); } .sq.amber { background: var(--amber); } .sq.red { background: var(--red); }
 .gl-ctl-txt { font-size: 11.5px; color: var(--muted); margin-left: 5px; }
+a.tl-link, a.tl-link text { cursor: pointer; text-decoration: none; }
+a.tl-link:hover text { text-decoration: underline; }

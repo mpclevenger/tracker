@@ -29,7 +29,7 @@
       <li class="nav-item"><a class="nav-link {% if nav == 'workbench' %}active{% endif %}" href="{% url 'workbench' %}">Workbench</a></li>
       {% endif %}
       {% if actor.is_tech_risk or actor.is_any_owner %}
-      <li class="nav-item"><a class="nav-link {% if nav == 'intake' %}active{% endif %}" href="{% url 'intake' %}">Intake form</a></li>
+      <li class="nav-item"><a class="nav-link {% if nav == 'intake' %}active{% endif %}" href="{% url 'intake' %}">{% if actor.is_tech_risk %}New initiative{% else %}Intake form{% endif %}</a></li>
       {% endif %}
       {% if modules.audit and actor.is_tech_risk or modules.audit and actor.is_auditor %}
       <li class="nav-item"><a class="nav-link {% if nav == 'audit' %}active{% endif %}" href="{% url 'audit' %}">Audit</a></li>

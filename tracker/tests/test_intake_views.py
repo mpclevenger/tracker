@@ -58,8 +58,8 @@ def test_intake_by_new_user_creates_proposed_initiative(client):
 def test_intake_form_shows_oversight_questions(client):
     switch(client, NEW)
     body = client.get(reverse("intake")).content.decode()
-    assert "About this initiative" in body
-    assert "Select all that apply. Tech Risk sets the oversight level from your answers." in body
+    assert "Which apply?" in body
+    assert "Which apply?" in body
     for key, label in oversight_questions():
         assert f'name="{key}"' in body and label in body
 
@@ -81,14 +81,14 @@ def test_intake_saves_oversight_answers(client):
     assert init.derived_oversight == "enhanced"
 
 
-def test_intake_requires_why_and_tech_risk_redirects_to_workbench(client):
+def test_intake_requires_why_and_tech_risk_redirects_to_new_initiative(client):
     switch(client, NEW)
     bad = dict(INTAKE, why_it_matters="")
     assert client.post(reverse("intake"), bad).status_code == 200
     assert not Initiative.objects.current().filter(name="Vault Rollout").exists()
     switch(client, TR)
     resp = client.post(reverse("intake"), dict(INTAKE, owner_emp_id=TR))
-    assert resp["Location"] == reverse("workbench")
+    assert resp["Location"].startswith("/initiative/")
 
 
 def test_accept_and_return(client):

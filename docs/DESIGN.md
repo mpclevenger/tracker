@@ -139,3 +139,15 @@ due). Tech Risk adds and edits them. "Confirm as initiative" moves the item into
 details; "No change needed" closes it with a reason. Shown on the Watch list page, a Workbench group, and a
 short "On the watch list" block on the exec summary (frozen into snapshots). Has its own module switch.
 Watch and dropped items are excluded from every initiative listing via `Initiative.objects.listed()`.
+
+## Initiative page layout and workstreams (Nov 10)
+- Page: header with name, SOX and oversight pills, status in words with its reason, four facts (stage, go-live,
+  next milestone, next check-in), Check in button and an Actions menu (override, oversight, people, workstreams,
+  accept/return, close, archive, delete). Overview is read-only and the same for every role (highlights, why
+  this status, workstreams, latest check-in, open follow-ups, about). Curation lives in a Tech Risk "Exec view"
+  tab. Risks and controls show visibility only as tags; selects sit behind "Edit visibility".
+- Workstreams: optional parts of one initiative, each with a lead, its own phases, milestones, risks, controls
+  and check-ins, and its own status from the same rules. The initiative's status is the worst of its own rules
+  and its workstreams, with the workstream named in the reason ("Compute: High risk past due"). Leads check in
+  for their workstream only. One exec tile per initiative with a roll-up line; the portfolio timeline shows one
+  bar per stage; the Plan tab groups phases by workstream. Sign-offs and overrides stay at initiative level.

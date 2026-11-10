@@ -22,7 +22,7 @@ from tracker.views.common import close_modal_response, get_initiative, is_htmx, 
 
 TABS = [
     ("overview", "Overview"), ("plan", "Plan"), ("risks", "Risks & controls"),
-    ("lifecycle", "Lifecycle"), ("meetings", "Meetings"), ("history", "History"),
+    ("lifecycle", "Lifecycle"), ("meetings", "Meetings"), ("history", "History"), ("exec", "Exec view"),
 ]
 
 
@@ -33,11 +33,24 @@ class OverrideForm(forms.Form):
     review_by = forms.DateField()
 
 
-def _done(request, entity_id):
-    """HX-Refresh for HTMX callers, redirect to the page otherwise."""
+def _tab_url(entity_id, tab):
+    return f"{reverse('initiative', args=[entity_id])}?tab={tab}"
+
+
+def _done(request, entity_id, tab="overview"):
+    """HX-Refresh for HTMX callers, redirect to the page's tab otherwise."""
     if is_htmx(request):
         return HttpResponse(status=204, headers={"HX-Refresh": "true"})
-    return redirect("initiative", entity_id=entity_id)
+    return redirect(_tab_url(entity_id, tab))
+
+
+def _why_rows(ev, layers, bundle):
+    """Fired rules for 'Why this status'; detail text is withheld when it names an item the viewer can't see."""
+    hidden = {r.title for r in bundle.risks if r.visibility not in layers}
+    for i in bundle.impacts:
+        if i.visibility not in layers and (c := bundle.control_for(i)):
+            hidden.add(c.control_id)
+    return [(level, chip, "" if any(h and h in detail for h in hidden) else detail) for level, chip, detail in ev.fired]
 
 
 def _overlay(entity_id, item_entity):
@@ -66,23 +79,44 @@ def _summary(initiative, bundle):
     }
 
 
+def _ws_rows(bundle, ev):
+    """Rows for the Overview workstream table: lead, status, next key milestone, last check-in."""
+    rows = []
+    for ws, wev in ev.workstreams:
+        last = bundle.ws_last_update(ws.entity_id)
+        _due, overdue = checkin.check_in_due(bundle, ws)
+        rows.append({
+            "ws": ws, "ev": wev, "next": bundle.next_milestone(key_only=True, ws=ws.entity_id),
+            "last": last.posted_at if last else None, "overdue": overdue,
+        })
+    return rows
+
+
 def _tab_context(request, tab, initiative, bundle, ev, layers):
     """Extra context for the selected tab."""
     actor = request.actor
     eid = initiative.entity_id
     updates = [u for u in bundle.updates if u.visibility in layers]
-    ctx = {"updates": updates}
+    ctx = {"updates": updates, "ws_names": {w.entity_id: w.name for w in bundle.workstreams}}
     if tab == "overview":
         overlays = [o for o in bundle.overlays if o.visibility in layers]
         ctx.update({
             "delegates": [d.delegate_emp_id for d in Delegation.objects.current().filter(initiative_entity=eid)],
-            "highlights": bundle.highlights if actor.is_tech_risk else [o for o in bundle.highlights if o.visibility == Visibility.EXEC],
-            "commentary": [o for o in overlays if o.type != Overlay.Type.HIGHLIGHT],
+            "highlights": [o for o in bundle.highlights if o.visibility == Visibility.EXEC],
+            "commentary": [o for o in overlays if o.type != Overlay.Type.HIGHLIGHT and o.visibility != Visibility.INTERNAL],
             "last_update": updates[0] if updates else None,
             "open_followups": [f for f in meetings_services.followups_for_initiative(eid) if f.status == "open"]
             if request.modules["meetings"] else [],
+            "why_rows": _why_rows(ev, layers, bundle),
+            "ws_rows": _ws_rows(bundle, ev),
+        })
+    elif tab == "exec":
+        overlays = [o for o in bundle.overlays if o.visibility in layers]
+        ctx.update({
+            "last_update": updates[0] if updates else None,
+            "highlights": bundle.highlights,
+            "commentary": [o for o in overlays if o.type != Overlay.Type.HIGHLIGHT],
             "exec_highlights": [o for o in bundle.highlights if o.visibility == Visibility.EXEC][:3],
-            "rag_choices": Rag.choices,
             "visibility_choices": Visibility.choices,
         })
     elif tab == "plan":
@@ -113,12 +147,14 @@ def detail(request, entity_id):
     actor = request.actor
     tab = request.GET.get("tab", "overview")
     tabs = [t for t in TABS if t[0] != "meetings" or request.modules["meetings"]]
+    if not actor.is_tech_risk:
+        tabs = [t for t in tabs if t[0] != "exec"]
     if tab not in dict(tabs):
         tab = "overview"
     bundle = load_bundle(initiative)
     ev = rag.evaluate(bundle, persist=False)
     ctx = {
-        "nav": "my" if actor.is_owner_of(entity_id) and not actor.sees_exec_pages else "exec",
+        "nav": "",
         "initiative": initiative,
         "bundle": bundle,
         "ev": ev,
@@ -127,9 +163,10 @@ def detail(request, entity_id):
         "tabs": tabs,
         "tab": tab,
         "can_edit": actor.can_edit_initiative(entity_id),
-        "can_check_in": actor.can_edit_initiative(entity_id) and initiative.status == Initiative.Status.ACTIVE,
+        "can_check_in": actor.can_check_in(entity_id) and initiative.status == Initiative.Status.ACTIVE,
         "show_history_link": actor.is_tech_risk or actor.is_auditor,
         "s": _summary(initiative, bundle),
+        "rag_choices": Rag.choices,
     }
     ctx.update(_tab_context(request, tab, initiative, bundle, ev, actor.visible_layers(entity_id)))
     return render(request, "tracker/initiative.html", ctx)
@@ -217,7 +254,7 @@ def set_visibility(request, entity_id, kind, item_entity):
         raise Http404("No such item")
     curation.set_visibility(item, request.actor.emp_id, visibility)
     rag.recompute(initiative)
-    return _done(request, entity_id)
+    return _done(request, entity_id, "exec" if kind == "overlay" else "risks")
 
 
 @require_http_methods(["POST"])
@@ -230,10 +267,10 @@ def overlay_add(request, entity_id):
     text = request.POST.get("text", "").strip()
     if type_ not in Overlay.Type.values or not text:
         messages.error(request, "Select a type and enter text.")
-        return redirect("initiative", entity_id=entity_id)
+        return redirect(_tab_url(entity_id, "exec"))
     curation.add_overlay(entity_id, request.actor.emp_id, type_, text)
     rag.recompute(initiative)
-    return _done(request, entity_id)
+    return _done(request, entity_id, "exec")
 
 
 @require_http_methods(["POST"])
@@ -244,7 +281,7 @@ def overlay_remove(request, entity_id, item_entity):
     initiative = get_initiative(request, entity_id)
     curation.remove_overlay(_overlay(entity_id, item_entity), request.actor.emp_id)
     rag.recompute(initiative)
-    return _done(request, entity_id)
+    return _done(request, entity_id, "exec")
 
 
 @require_http_methods(["POST"])
@@ -260,7 +297,7 @@ def overlay_move(request, entity_id, item_entity, direction):
         raise Http404("Only highlights can be reordered")
     curation.move_highlight(ov, request.actor.emp_id, -1 if direction == "up" else 1)
     rag.recompute(initiative)
-    return _done(request, entity_id)
+    return _done(request, entity_id, "exec")
 
 
 def _oversight_ctx(initiative, answers, override, reason, error="", sox_applicable=None):

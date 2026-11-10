@@ -47,6 +47,19 @@ class Tile:
     chip: str = ""  # plain-words label of the top RAG rule
     as_of: date | None = None  # snapshot date when frozen; None = today
     sox: bool = False  # SOX applicable
+    workstreams: list = field(default_factory=list)  # [(name, effective)]
+
+    @property
+    def workstream_rollup(self):
+        """'Compute red · Admin amber · 2 green': non-green workstreams named, the rest counted."""
+        if not self.workstreams:
+            return ""
+        named = sorted((w for w in self.workstreams if w[1] != "green"), key=lambda w: -RAG_ORDER[w[1]])
+        parts = [f"{name} {level}" for name, level in named]
+        greens = len(self.workstreams) - len(named)
+        if greens:
+            parts.append(f"{greens} green")
+        return " · ".join(parts)
 
     @property
     def comparison(self):
@@ -125,7 +138,7 @@ def _live_tile(b: Bundle, ev, actor, prior_rows) -> Tile:
         last_update_at=b.last_update.posted_at if b.last_update else None,
         controls_ready=sum(1 for i in b.impacts if i.readiness == "ready"), controls_total=len(b.impacts),
         controls=[(_control_label(b, i), i.readiness) for i in b.impacts],
-        chip=ev.chip, sox=init.sox_applicable,
+        chip=ev.chip, sox=init.sox_applicable, workstreams=[(w.name, e.effective) for w, e in ev.workstreams],
         prior=prior["effective"] if prior else None, closed_at=init.closed_at, closure=init.closure_control_outcome,
         open_high_risks=sum(1 for r in b.risks if r.rating == RiskItem.Rating.HIGH and r.is_open and r.visibility in layers),
     )
@@ -149,6 +162,7 @@ def _frozen_tile(eid, row, prior_rows, summary, as_of: date) -> Tile:
         closed_at=p(row.get("closed_at")), closure=row.get("closure_control_outcome", ""),
         open_high_risks=row.get("open_high_risks", 0), chip=row.get("chip", ""),
         sox=bool(row.get("sox_applicable", False)),
+        workstreams=[(w["name"], w["effective"]) for w in row.get("workstreams", [])],
     )
     tile.as_of = as_of
     return tile

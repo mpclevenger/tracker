@@ -2,7 +2,7 @@
 
     python scripts/load_initiative.py path/to/initiative.yaml
 
-Creates the owner, delegates, any missing controls, and the initiative with its phases, milestones,
+Creates the owner, delegates, any missing controls, and the initiative with its workstreams, phases, milestones,
 risks, control impacts, updates, Tech Risk overlay and lifecycle confirmations. Refuses to run if an
 initiative with the same name already exists. Needs the app's environment (DATABASE_URL etc.) and PyYAML.
 """
@@ -39,6 +39,7 @@ from tracker.models import (  # noqa: E402
     StageCheck,
     Update,
     Visibility,
+    Workstream,
 )
 from tracker.lifecycle import QUESTION_KEYS  # noqa: E402
 from tracker.services import lifecycle, rag  # noqa: E402
@@ -79,6 +80,17 @@ def _control(spec):
     )
 
 
+def _ws(spec, what, by_name):
+    """Entity id of the workstream named in `spec["workstream"]`, None when absent; error when unknown."""
+    name = spec.get("workstream")
+    if not name:
+        return None
+    if name not in by_name:
+        known = ", ".join(by_name) or "none defined"
+        raise SystemExit(f'{what}: workstream "{name}" is not in the workstreams list ({known}).')
+    return by_name[name]
+
+
 @transaction.atomic
 def load(doc: dict, out=print) -> Initiative:
     spec = doc["initiative"]
@@ -113,6 +125,14 @@ def load(doc: dict, out=print) -> Initiative:
     for d in spec.get("delegates") or []:
         Delegation.create(SYSTEM, initiative_entity=eid, delegate_emp_id=_person(d["emp_id"], d.get("display_name")))
 
+    ws_by_name = {}
+    for order, w in enumerate(doc.get("workstreams") or []):
+        lead = _person(w.get("lead_emp_id"), w.get("lead_name")) or ""
+        ws_by_name[w["name"]] = Workstream.create(
+            SYSTEM, initiative_entity=eid, name=w["name"], lead_emp_id=lead, order=order,
+            description=w.get("description", ""),
+        ).entity_id
+
     for order, ph in enumerate(doc.get("phases") or []):
         ps, pe = _date(ph.get("planned_start")), _date(ph.get("planned_end"))
         Phase.create(
@@ -120,6 +140,7 @@ def load(doc: dict, out=print) -> Initiative:
             planned_start=ps, planned_end=pe,
             forecast_start=_date(ph.get("forecast_start")) or ps, forecast_end=_date(ph.get("forecast_end")) or pe,
             actual_start=_date(ph.get("actual_start")), actual_end=_date(ph.get("actual_end")),
+            workstream_entity=_ws(ph, f'Phase {ph["name"]}', ws_by_name),
         )
     key_milestones = {}
     for m in doc.get("milestones") or []:
@@ -128,6 +149,7 @@ def load(doc: dict, out=print) -> Initiative:
             forecast=_date(m.get("forecast")) or _date(m.get("planned")), actual=_date(m.get("actual")),
             pct_complete=int(m.get("pct_complete", 0)), status=m.get("status", "planned"),
             is_key=bool(m.get("key", False)), note=m.get("note", ""),
+            workstream_entity=_ws(m, f'Milestone {m["name"]}', ws_by_name),
         )
         if ms.is_key:
             key_milestones[ms.name] = ms
@@ -137,6 +159,7 @@ def load(doc: dict, out=print) -> Initiative:
             owner=r.get("owner", ""), target_date=_date(r.get("target_date")), status=r.get("status", "open"),
             mitigation=r.get("mitigation", ""), source=r.get("source", "owner"),
             visibility=r.get("visibility", Visibility.EXEC),
+            workstream_entity=_ws(r, f'Risk "{r["title"]}"', ws_by_name),
         )
     for c in doc.get("control_impacts") or []:
         needed_by = None
@@ -151,6 +174,7 @@ def load(doc: dict, out=print) -> Initiative:
             SYSTEM, initiative_entity=eid, control_entity=_control(c).entity_id, impact_type=c["impact_type"],
             compensating_control=c.get("compensating_control", ""), readiness=c.get("readiness", "not_started"),
             evidence_link=c.get("evidence_link", ""), needed_by_milestone=needed_by,
+            workstream_entity=_ws(c, f'Control {c["control_id"]}', ws_by_name),
         )
     for u in doc.get("updates") or []:
         Update.objects.create(initiative_entity=eid, author_emp_id=owner, posted_at=_at(u["date"]), text=u["text"])

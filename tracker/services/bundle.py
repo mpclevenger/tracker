@@ -16,7 +16,11 @@ from tracker.models import (
     RiskItem,
     StageCheck,
     Update,
+    Workstream,
 )
+
+
+ALL = object()  # "every workstream" marker for scoped lookups
 
 
 def _qs(model, at):
@@ -38,6 +42,8 @@ class Bundle:
     gates: list = field(default_factory=list)
     last_curated: datetime | None = None
     at: datetime | None = None
+    workstreams: list = field(default_factory=list)
+    ws_since: dict = field(default_factory=dict)  # workstream entity -> when it first existed
 
     @property
     def entity_id(self):
@@ -58,9 +64,47 @@ class Bundle:
     def key_milestones(self):
         return [m for m in self.milestones if m.is_key]
 
-    def next_milestone(self, key_only=False):
+    # --- workstreams ---------------------------------------------------------------
+
+    @property
+    def ws_ids(self):
+        return {w.entity_id for w in self.workstreams}
+
+    def ws_name(self, entity):
+        return next((w.name for w in self.workstreams if w.entity_id == entity), "")
+
+    def own(self, items):
+        """Items for the whole initiative: untagged, or tagged to a workstream that no longer exists."""
+        ids = self.ws_ids
+        return [i for i in items if i.workstream_entity not in ids]
+
+    def scoped(self, items, ws_entity):
+        """Items of one workstream; None means the whole initiative's own items."""
+        if ws_entity is None:
+            return self.own(items)
+        return [i for i in items if i.workstream_entity == ws_entity]
+
+    def ws_last_update(self, ws_entity):
+        return next((u for u in self.updates if u.workstream_entity == ws_entity), None)
+
+    @property
+    def own_last_update(self):
+        """Latest check-in not tagged to a current workstream (all of them when there are none)."""
+        ids = self.ws_ids
+        return next((u for u in self.updates if u.workstream_entity not in ids), None)
+
+    def ws_checkin_base(self, ws):
+        """When a workstream's check-in clock started: its last check-in, else when it was set up."""
+        last = self.ws_last_update(ws.entity_id)
+        if last:
+            return last.posted_at
+        starts = [d for d in (self.initiative.accepted_at, self.ws_since.get(ws.entity_id)) if d]
+        return max(starts, default=None)
+
+    def next_milestone(self, key_only=False, ws=ALL):
+        pool = self.milestones if ws is ALL else self.scoped(self.milestones, ws)
         open_ms = [
-            m for m in self.milestones
+            m for m in pool
             if m.status != Milestone.Status.DONE and (m.forecast or m.planned) and (m.is_key or not key_only)
         ]
         return min(open_ms, key=lambda m: m.forecast or m.planned, default=None)
@@ -110,6 +154,10 @@ def load_bundle(initiative: Initiative, at: datetime | None = None) -> Bundle:
     b.impacts = list(_qs(ControlImpact, at).filter(initiative_entity=eid))
     control_ids = {i.control_entity for i in b.impacts}
     b.controls_by_entity = {c.entity_id: c for c in _qs(Control, at).filter(entity_id__in=control_ids)}
+    b.workstreams = list(_qs(Workstream, at).filter(initiative_entity=eid).order_by("order", "name"))
+    if b.workstreams:
+        for w in Workstream.objects.filter(entity_id__in=b.ws_ids).order_by("-valid_from"):
+            b.ws_since[w.entity_id] = w.valid_from
     b.overlays = list(_qs(Overlay, at).filter(initiative_entity=eid).order_by("order", "valid_from"))
     updates = Update.objects.filter(initiative_entity=eid)
     if at:

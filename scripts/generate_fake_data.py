@@ -39,6 +39,7 @@ from tracker.models import (
     StageCheck,
     Update,
     Visibility,
+    Workstream,
 )
 from tracker.services import lifecycle, rag
 
@@ -117,6 +118,105 @@ def seed_watch(stdout=print):
     stdout("Fake watch item generated.")
 
 
+LAKE_PEOPLE = [
+    ("E00102", "Mary Jones"), ("E00103", "Adam Brown"), ("E00104", "Sam Lee"),
+    ("E00105", "Priya Shah"), ("E00106", "Tom Reed"),
+]
+
+
+def seed_data_lake(stdout=print):
+    """Add the fictional multi-workstream initiative; skipped if the name already exists."""
+    name = "Data lake rollout"
+    if Initiative.objects.current().filter(name=name).exists():
+        return
+    for emp_id, display in LAKE_PEOPLE:
+        Person.objects.get_or_create(pk=emp_id, defaults={"display_name": display})
+    controls = {c.control_id: c for c in Control.objects.current()}
+    today = clock.today()
+    D = lambda n: today + timedelta(days=n)  # noqa: E731
+    T = lambda n: timezone.now() + timedelta(days=n)  # noqa: E731
+    owner = "E00102"
+
+    init = Initiative.create(
+        SYSTEM, name=name, owner_emp_id=owner, sponsor="CTO", status=Initiative.Status.ACTIVE,
+        description="Consolidate reporting data into one governed data lake: front end, back end, compute and "
+                    "admin tooling delivered as four workstreams under one plan.",
+        why_it_matters="Financial reporting extracts move to the lake; access, change and job controls change shape.",
+        expected_systems="Reporting warehouse; ERP extracts; cloud compute; identity provider",
+        target_go_live=D(110), baseline_go_live=D(110), submitted_at=T(-130), accepted_at=T(-120),
+        affects_sox_app=True, sox_applicable=True, changes_key_controls=True, migrates_regulated_data=True,
+        moves_to_vendor_or_cloud=True,
+    )
+    eid = init.entity_id
+
+    plan = [  # (workstream, lead, phases, key milestones, check-in days ago)
+        ("Front end", "E00103", "Web and reporting screens",
+         [("UI design", 1, -90, -45, -90, -45), ("UI build", 2, -44, 40, -44, 40)],
+         [("UI design sign-off", -45, -45, -45, 100, "done"), ("UI build complete", 40, 40, None, 55, "on_track")], 6),
+        ("Back end", "E00104", "APIs and data pipelines",
+         [("API design", 1, -90, -40, -90, -40), ("API build", 2, -39, 50, -39, 50)],
+         [("API contract frozen", -40, -40, -40, 100, "done"), ("API build complete", 50, 50, None, 50, "on_track")], 4),
+        ("Compute", "E00105", "Cluster and job scheduling",
+         [("Cluster design", 1, -90, -50, -90, -50), ("Cluster build", 2, -49, 30, -49, 50),
+          ("Load test", 3, 31, 60, 51, 80)],
+         [("Cluster design sign-off", -50, -50, -50, 100, "done"), ("Cluster provisioned", 30, 50, None, 40, "slipped")], 8),
+        ("Admin", "E00106", "Access model and admin tooling",
+         [("Access model design", 1, -80, -30, -80, -30), ("Admin tooling", 2, -29, 60, -29, 60)],
+         [("Access model approved", -30, -30, -30, 100, "done"), ("Admin console ready", 60, 60, None, 30, "on_track")], 35),
+    ]
+    ws = {}
+    for order, (wname, lead, desc, phases, milestones, checkin) in enumerate(plan):
+        w = ws[wname] = Workstream.create(SYSTEM, initiative_entity=eid, name=wname, lead_emp_id=lead, order=order,
+                                          description=desc)
+        for i, (pname, stage, ps, pe, fs, fe) in enumerate(phases):
+            Phase.create(
+                SYSTEM, initiative_entity=eid, name=pname, order=order * 10 + i, stage=stage,
+                planned_start=D(ps), planned_end=D(pe), forecast_start=D(fs), forecast_end=D(fe),
+                actual_start=D(fs) if fs <= 0 else None, actual_end=D(fe) if fe < 0 else None,
+                workstream_entity=w.entity_id,
+            )
+        for mname, p, f, a, pct, st in milestones:
+            Milestone.create(
+                SYSTEM, initiative_entity=eid, name=mname, planned=D(p), forecast=D(f), actual=D(a) if a else None,
+                pct_complete=pct, status=st, is_key=True, workstream_entity=w.entity_id,
+            )
+        Update.objects.create(
+            initiative_entity=eid, author_emp_id=lead, posted_at=T(-checkin), workstream_entity=w.entity_id,
+            text=f"{wname}: " + {"Front end": "Report screens in user testing; no blockers.",
+                                 "Back end": "Pipelines loading daily; API build on plan.",
+                                 "Compute": "Cluster build waiting on the cloud capacity quota.",
+                                 "Admin": "Access model approved; admin console build started."}[wname],
+        )
+    Milestone.create(SYSTEM, initiative_entity=eid, name="Go-live", planned=D(110), forecast=D(110), pct_complete=0,
+                     status="planned", is_key=True)
+    Update.objects.create(initiative_entity=eid, author_emp_id=owner, posted_at=T(-5),
+                          text="All four workstreams planned against one go-live. Compute is the one to watch.")
+
+    RiskItem.create(
+        SYSTEM, initiative_entity=eid, type="risk", title="Cloud compute capacity quota not yet approved", rating="H",
+        owner="Priya Shah", target_date=D(-10), status="open",
+        mitigation="Escalated to the cloud vendor; fallback is a smaller cluster.", visibility=Visibility.EXEC,
+        workstream_entity=ws["Compute"].entity_id,
+    )
+    for cid, itype, ready, comp in [
+        ("ITGC-LA-04", "modified", "in_progress", "Manual privileged access approvals continue until cutover"),
+        ("ITGC-LA-02", "modified", "not_started", ""),
+    ]:
+        ControlImpact.create(
+            SYSTEM, initiative_entity=eid, control_entity=controls[cid].entity_id, impact_type=itype,
+            readiness=ready, compensating_control=comp, workstream_entity=ws["Admin"].entity_id,
+        )
+    for order, text in enumerate([
+        "Compute is behind on cluster provisioning; the capacity quota is the blocker",
+        "Admin has not checked in for over a month",
+    ]):
+        Overlay.create(TR, initiative_entity=eid, type=Overlay.Type.HIGHLIGHT, text=text,
+                       visibility=Visibility.EXEC, order=order)
+    CurationEvent.objects.create(initiative_entity=eid, author_emp_id=TR, at=timezone.now(), what="seeded")
+    rag.recompute(init)
+    stdout("Fake data generated: Data lake rollout.")
+
+
 def seed(stdout=print):
     """Idempotent: safe to run more than once."""
     if True:
@@ -141,6 +241,7 @@ def seed(stdout=print):
             stdout("Initiatives already present; skipping.")
             seed_meeting(stdout)
             seed_watch(stdout)
+            seed_data_lake(stdout)
             return
 
         today = date.today()
@@ -288,6 +389,7 @@ def seed(stdout=print):
         rag.recompute(init)
         seed_meeting(stdout)
         seed_watch(stdout)
+        seed_data_lake(stdout)
         stdout("Fake data generated: SailPoint Onboarding.")
 
 

@@ -31,6 +31,7 @@ urlpatterns = [
     path("initiative/<uuid:entity_id>/milestones/", owner.edit_milestones, name="edit_milestones"),
     path("initiative/<uuid:entity_id>/risks/", owner.edit_risks, name="edit_risks"),
     path("initiative/<uuid:entity_id>/controls/", owner.edit_controls, name="edit_controls"),
+    path("initiative/<uuid:entity_id>/workstreams/", owner.edit_workstreams, name="edit_workstreams"),
     # intake
     path("intake/", intake.intake_form, name="intake"),
     path("intake/<uuid:entity_id>/accept/", intake.accept, name="intake_accept"),

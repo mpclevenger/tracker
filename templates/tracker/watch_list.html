@@ -23,7 +23,7 @@
     <td class="small text-nowrap">{{ r.item.next_check|short_date }}</td>
   </tr>
   {% empty %}
-  <tr><td colspan="8" class="muted">Nothing on the watch list</td></tr>
+  <tr><td colspan="8" class="muted">Nothing on the watch list.{% if actor.is_tech_risk %} <a href="{% url 'watch_add' %}">Add the first item</a>{% endif %}</td></tr>
   {% endfor %}
   </tbody>
 </table>

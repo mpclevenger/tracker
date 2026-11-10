@@ -43,7 +43,7 @@ def _render(request, viewer, snapshot, as_of, shared=False, share_token=""):
                          watch_list=request.modules["watch_list"])
     timeline_svg = ""
     if ctx.mode == "live":
-        timeline_svg = timeline.portfolio_svg(ctx.timeline_bundles, ctx.evaluations)
+        timeline_svg = timeline.portfolio_svg(ctx.timeline_bundles, ctx.evaluations, link=not shared)
     share_url = ""
     if not shared and request.modules["share_links"]:
         token = signing.dumps({"snapshot": snapshot.pk if snapshot else None})

@@ -18,6 +18,13 @@ How to run the tracker day to day. Almost everything is done in the app; nothing
 - **The tracker itself** is prefilled in `scripts/initiatives/risk_tracker.yaml`: replace every `CHANGE_ME`, check the lines marked CONFIRM, then load it as below.
 - **From a file** (for one with a lot of history): copy `scripts/initiative_template.yaml`, fill it in, then run `python scripts/load_initiative.py my_initiative.yaml`. It won't overwrite an existing initiative.
 
+## Large initiatives (workstreams)
+For one initiative with several parts, such as a data lake with front end, back end, compute and admin.
+- Initiative page › **Actions › Workstreams**: add each part and its lead.
+- Tag phases, milestones, risks and controls to a workstream in their editors (blank = whole initiative).
+- Each lead checks in for their own workstream. The initiative's status is the worst of its workstreams, and the exec tile shows a one-line roll-up.
+- Loading from a file: see the `workstreams:` example in `scripts/initiative_template.yaml`.
+
 ## Watch list (not confirmed yet)
 For things that may become initiatives, such as a contract ending where the team hasn't decided to stay or move.
 - **Watch list › Add watch item**: what's being decided, decision due, optional key date (e.g. "Contract ends"), options, SOX applicable, possible impact, next check.

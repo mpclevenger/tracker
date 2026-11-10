@@ -57,7 +57,7 @@ def short_date(d):
 
 @register.simple_tag
 def vis_tag(visibility):
-    label = {"internal": "internal", "owner": "owner", "exec": "exec/audit"}.get(visibility, visibility)
+    label = {"internal": "Tech Risk only", "owner": "Hidden from execs", "exec": "Executives and audit"}.get(visibility, visibility)
     return format_html('<span class="tag {}">{}</span>', visibility, label)
 
 
@@ -67,9 +67,9 @@ def rag_pill(value, text=None):
 
 
 @register.simple_tag
-def readiness_pill(value):
+def readiness_pill(value, text=None):
     color = {"ready": "green", "in_progress": "amber", "submitted": "amber", "sent_back": "amber", "not_started": "red"}.get(value, "grey")
-    return format_html('<span class="pill {}">{}</span>', color, value.replace("_", " "))
+    return format_html('<span class="pill {}">{}</span>', color, text or value.replace("_", " "))
 
 
 @register.simple_tag

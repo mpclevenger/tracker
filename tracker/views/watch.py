@@ -43,7 +43,8 @@ def _get_item(entity_id, statuses=Initiative.WATCH_STATUSES):
 
 
 class WatchForm(forms.Form):
-    name = forms.CharField(max_length=200)
+    name = forms.CharField(max_length=200, label="Item name",
+                           widget=forms.TextInput(attrs={"placeholder": "e.g. Expense platform renewal"}))
     description = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 2}))
     owner_emp_id = forms.CharField(max_length=32, label="Owner (employee ID)")
     owner_name = forms.CharField(required=False, max_length=200, label="Owner name")

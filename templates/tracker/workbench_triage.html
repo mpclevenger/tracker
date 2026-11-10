@@ -3,7 +3,11 @@
 {% block title %}Workbench · IT Initiative Risk Tracker{% endblock %}
 {% block content %}
 {% include "tracker/partials/wb_tabs.html" %}
-<div class="mb-2">{% include "tracker/partials/scope_toggle.html" %}</div>
+<div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+  <div class="flex-grow-1">{% include "tracker/partials/scope_toggle.html" %}</div>
+  <a class="btn btn-primary btn-sm" href="{% url 'intake' %}">New initiative</a>
+  {% if modules.watch_list %}<a class="btn btn-outline-primary btn-sm" href="{% url 'watch_add' %}">Add watch item</a>{% endif %}
+</div>
 {% for group, rows in groups %}
 <h2 class="sect">{{ group|group_label }} <span class="small muted">· {{ rows|length }}</span></h2>
 <table class="table table-sm align-middle">
@@ -15,7 +19,7 @@
     <td><a href="{% if r.watch %}{% url 'watch_item' init.entity_id %}{% else %}{% url 'initiative' init.entity_id %}{% endif %}">{{ init.name }}</a></td>
     <td><span class="pill {{ r.severity }}" style="padding:0 5px">&nbsp;</span> {{ r.what }}</td>
     <td class="small">{% if r.since %}{{ r.since|date:"M j, Y" }}{% else %}—{% endif %}</td>
-    <td class="small">{{ init.owner_emp_id|person }}</td>
+    <td class="small">{{ r.person|default:init.owner_emp_id|person }}</td>
     <td class="small">{% if r.bundle.last_curated %}{{ r.bundle.last_curated|days_ago }}{% else %}never{% endif %}</td>
     <td>
       {% if r.action == "decide" %}
@@ -35,7 +39,7 @@
       {% elif r.action == "review" %}
       <a href="{% url 'initiative' init.entity_id %}?tab={{ r.tab }}">Open →</a>
       {% elif r.action == "remind" %}
-      <button type="button" class="btn btn-sm btn-outline-secondary" hx-get="{% url 'reminder_modal' init.entity_id %}" hx-target="#modal" hx-swap="innerHTML">Copy reminder</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" hx-get="{% url 'reminder_modal' init.entity_id %}{% if r.ws %}?ws={{ r.ws }}{% endif %}" hx-target="#modal" hx-swap="innerHTML">Copy reminder</button>
       {% else %}
       <a href="{% url 'initiative' init.entity_id %}?tab={{ r.tab }}">Open →</a>
       {% endif %}
