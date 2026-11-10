@@ -154,7 +154,12 @@ Design is frozen in `docs/DESIGN.md` (from the clickable demo, Nov 5). Page buil
 - Workstreams (migration 0011, `services/workstreams.py`): per-workstream status and check-ins, worst-of roll-up,
   lead rights, exec tile roll-up line, stage-span bars on the portfolio timeline, loader `workstreams:`.
 - Fake data adds "Data lake rollout" with four workstreams. Checks: pytest 596 passed; screenshots reviewed.
-- Watch: `test_sox_scope::test_pill_on_tiles_and_initiative_page` reported as intermittently order-dependent.
+
+## Meeting series (Nov 10)
+- `MeetingSeries` (meetings migration 0003), `Meeting.series_entity`; series list/page/form, prefilled "Log next
+  meeting", carried-over follow-up closing, initiative tab grouping, missed-meeting Overdue row in triage.
+- Fixed flaky SOX pill test (it depended on tile order); exec tiles now sort by status, then name.
+- Checks: pytest 619 passed; series page screenshot reviewed.
 
 ## Known gaps / follow-ups
 - `override_history` returns all version rows on purpose (full audit trail); the modal shows one row per override.

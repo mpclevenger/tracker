@@ -101,9 +101,9 @@ def test_loader_field_and_default():
 def test_pill_on_tiles_and_initiative_page(client, settings, pair):
     sox, other = pair
     html = get(client, settings, "TR1", scope="all").content.decode()
-    tiles = html.split('<h3>')
-    assert any(SOX_NAME in t and 'pill sox' in t.split("</h3>")[0] for t in tiles)
-    assert not any(OTHER_NAME in t and 'pill sox' in t.split("</h3>")[0] for t in tiles)
+    heads = [t.split("</h3>")[0] for t in html.split("<h3>")[1:]]
+    assert any(SOX_NAME in h and "pill sox" in h for h in heads)
+    assert not any(OTHER_NAME in h and "pill sox" in h for h in heads)
     assert 'pill sox' in get(client, settings, "TR1", reverse("initiative", args=[sox.entity_id])).content.decode()
     assert 'pill sox' not in get(client, settings, "TR1", reverse("initiative", args=[other.entity_id])).content.decode()
 

@@ -9,12 +9,12 @@
     <td class="small">{{ f.owner|default:"—" }}</td>
     <td class="small">{{ f.due_date|short_date }}</td>
     <td class="small">
-      {% if f.status == "done" %}Done {{ f.closed_on|short_date }}{% if f.closure_note %} — {{ f.closure_note }}{% endif %}
+      {% if f.status == "done" %}Closed {{ f.closed_on|short_date }}{% if f.closure_note %} — {{ f.closure_note }}{% endif %}
       {% else %}Open {% if f.is_overdue %}{% include "meetings/partials/overdue_pill.html" %}{% endif %}{% endif %}
     </td>
     {% if actor.is_tech_risk %}
     <td class="small">
-      {% if f.status == "open" %}<a href="{% url 'meetings:followup_close' f.entity_id %}">Close</a>
+      {% if f.status == "open" %}<a class="btn btn-link btn-sm p-0" href="{% url 'meetings:followup_close' f.entity_id %}">Close</a>
       {% else %}<form method="post" action="{% url 'meetings:followup_reopen' f.entity_id %}" class="m-0">{% csrf_token %}<button class="btn btn-link btn-sm p-0">Reopen</button></form>{% endif %}
     </td>
     {% endif %}

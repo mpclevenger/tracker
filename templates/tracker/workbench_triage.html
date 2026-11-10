@@ -14,6 +14,16 @@
   <thead><tr><th style="width:22%">Initiative</th><th>What</th><th style="width:12%">Since</th><th style="width:12%">Owner</th><th style="width:13%">Last Tech Risk touch</th><th style="width:20%"></th></tr></thead>
   <tbody>
   {% for r in rows %}
+  {% if r.series %}
+  <tr>
+    <td><a href="{% url 'meetings:series_detail' r.series.entity_id %}">{{ r.series.name }}</a></td>
+    <td><span class="pill {{ r.severity }}" style="padding:0 5px">&nbsp;</span> {{ r.what }}</td>
+    <td class="small">{% if r.since %}{{ r.since|date:"M j, Y" }}{% else %}—{% endif %}</td>
+    <td class="small">—</td>
+    <td class="small">—</td>
+    <td><a href="{% url 'meetings:series_detail' r.series.entity_id %}">Review →</a></td>
+  </tr>
+  {% else %}
   {% with init=r.bundle.initiative %}
   <tr>
     <td><a href="{% if r.watch %}{% url 'watch_item' init.entity_id %}{% else %}{% url 'initiative' init.entity_id %}{% endif %}">{{ init.name }}</a></td>
@@ -46,6 +56,7 @@
     </td>
   </tr>
   {% endwith %}
+  {% endif %}
   {% endfor %}
   </tbody>
 </table>

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Meeting series · IT Initiative Risk Tracker{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center gap-3 flex-wrap mb-3">
+  <h1 class="m-0 flex-grow-1">Meeting series</h1>
+  <a class="btn btn-outline-secondary btn-sm" href="{% url 'meetings:list' %}">All meetings</a>
+  {% if actor.is_tech_risk %}<a class="btn btn-primary btn-sm" href="{% url 'meetings:series_new' %}">Add series</a>{% endif %}
+</div>
+{% if rows %}
+<table class="table table-sm align-middle bg-white">
+  <thead><tr><th>Name</th><th>Cadence</th><th>Initiatives</th><th>Meetings</th><th>Last held</th><th>Open follow-ups</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr>
+    <td><a href="{% url 'meetings:series_detail' r.series.entity_id %}">{{ r.series.name }}</a></td>
+    <td class="small">{{ r.series.get_cadence_display }}</td>
+    <td class="small">{% for i in r.initiatives %}<a class="pill outline text-decoration-none" href="{% url 'initiative' i.entity_id %}">{{ i.name }}</a> {% empty %}—{% endfor %}</td>
+    <td class="small">{{ r.count }}</td>
+    <td class="small">{{ r.last_held|short_date }}</td>
+    <td class="small">{{ r.open_followups }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="card"><div class="card-body muted">No series yet.</div></div>
+{% endif %}
+{% endblock %}

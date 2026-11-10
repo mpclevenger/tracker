@@ -1,0 +1,14 @@
+{% load ui %}
+{% for c in cards %}{% with m=c.meeting %}
+<div class="card" id="mtg-{{ m.entity_id }}"><div class="card-body">
+  <div class="d-flex align-items-baseline gap-2 mb-1">
+    <b>{{ m.held_on|short_date }}</b>{% include "meetings/partials/stage_pill.html" with stage=c.stage %}
+    <span class="flex-grow-1"></span>
+    {% if can_log_meeting %}<a class="small" href="{% url 'meetings:edit' m.entity_id %}">Edit</a>{% endif %}
+  </div>
+  {% include "meetings/partials/meeting_fields.html" %}
+  {% include "meetings/partials/followups_table.html" with followups=c.followups %}
+</div></div>
+{% endwith %}{% empty %}
+<div class="muted">No meetings logged</div>
+{% endfor %}

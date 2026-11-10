@@ -24,7 +24,7 @@ if not apps.ready:
 from django.utils import timezone  # noqa: E402
 from core import clock
 from core.models import Person, Role, RoleAssignment
-from meetings.models import FollowUp, Meeting, MeetingInitiative
+from meetings.models import FollowUp, Meeting, MeetingInitiative, MeetingSeries
 from tracker.models import (
     Control,
     ControlImpact,
@@ -71,8 +71,15 @@ def seed_meeting(stdout=print):
     if init is None or Meeting.objects.current_including_deleted().exists():
         return
     today = clock.today()
+    series = MeetingSeries.create(
+        SYSTEM, name="SailPoint weekly steering", cadence=MeetingSeries.Cadence.WEEKLY,
+        usual_attendees="Jane (Tech Risk), John (program lead), Adam Brown (sponsor)",
+        initiative_entities=[str(init.entity_id)], default_stage=2,
+        description="Weekly steering for the SailPoint onboarding program",
+    )
     meeting = Meeting.create(
         SYSTEM,
+        series_entity=series.entity_id,
         held_on=today - timedelta(days=14),
         what="Connector defects checkpoint",
         who="Jane (Tech Risk), John (program lead)",
@@ -91,6 +98,22 @@ def seed_meeting(stdout=print):
         due_date=today - timedelta(days=3), status=FollowUp.Status.DONE, closed_on=today - timedelta(days=2),
         closure_note="Walkthrough booked for next month.",
     )
+    for days, what, result, fu in (
+        (28, "Steering kickoff", "Confirmed scope and build timeline. Agreed to book the certification report walkthrough.",
+         "Book the certification report walkthrough with Internal Audit"),
+        (21, "Build progress review", "Connector build is on track. Walkthrough with Internal Audit is booked.", None),
+    ):
+        earlier = Meeting.create(
+            SYSTEM, series_entity=series.entity_id, held_on=today - timedelta(days=days), what=what,
+            who=series.usual_attendees, result=result, stage=2,
+        )
+        MeetingInitiative.create(SYSTEM, meeting_entity=earlier.entity_id, initiative_entity=init.entity_id)
+        if fu:
+            FollowUp.create(
+                SYSTEM, meeting_entity=earlier.entity_id, initiative_entity=init.entity_id, text=fu, owner="Jane",
+                due_date=today - timedelta(days=22), status=FollowUp.Status.DONE,
+                closed_on=today - timedelta(days=21), closure_note="Booked for next month.",
+            )
     stdout("Fake meeting generated.")
 
 

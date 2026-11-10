@@ -7,6 +7,29 @@ from core.versioning import VersionedModel
 from tracker.lifecycle import STAGE_CHOICES
 
 
+class MeetingSeries(VersionedModel):
+    """A recurring touchpoint whose logged meetings are grouped on one page."""
+
+    class Cadence(models.TextChoices):
+        WEEKLY = "weekly", "Weekly"
+        BIWEEKLY = "biweekly", "Every 2 weeks"
+        MONTHLY = "monthly", "Monthly"
+        ADHOC = "adhoc", "Ad hoc"
+
+    name = models.CharField(max_length=200)
+    cadence = models.CharField(max_length=8, choices=Cadence.choices, default=Cadence.WEEKLY)
+    usual_attendees = models.TextField(blank=True)
+    initiative_entities = models.JSONField(default=list, blank=True, help_text="Initiative entity ids")
+    default_stage = models.PositiveSmallIntegerField(choices=STAGE_CHOICES, null=True, blank=True)
+    description = models.CharField(max_length=300, blank=True)
+
+    class Meta(VersionedModel.Meta):
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class Meeting(VersionedModel):
     """What was discussed, who attended, and the result; tagged to one lifecycle stage."""
 
@@ -15,6 +38,7 @@ class Meeting(VersionedModel):
     who = models.TextField(help_text="Attendees")
     result = models.TextField(help_text="Outcome and decisions")
     stage = models.PositiveSmallIntegerField(choices=STAGE_CHOICES, null=True, blank=True)
+    series_entity = models.UUIDField(null=True, blank=True, db_index=True)
 
     class Meta(VersionedModel.Meta):
         ordering = ["-held_on"]

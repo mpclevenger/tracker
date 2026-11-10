@@ -1,6 +1,7 @@
 """Workbench Triage rows and snapshot readiness (DESIGN.md → Tech Risk workbench)."""
 
 from dataclasses import dataclass
+from uuid import UUID
 
 from django.conf import settings
 
@@ -11,6 +12,7 @@ from tracker.services import checkin, lifecycle, rag, snapshots, watch
 from tracker.services.bundle import Bundle, load_bundles
 
 GROUPS = ["Decide", "Confirm", "Review", "Chase", "Watch"]
+SERIES_DUE_DAYS = {"weekly": 7, "biweekly": 14, "monthly": 31}
 GROUP_LABELS = {"Decide": "Intake decisions", "Confirm": "Risks to confirm", "Review": "Reviews due", "Chase": "Overdue",
                 "Watch": "Watch list"}
 
@@ -28,6 +30,17 @@ class WatchRef:
 
 
 @dataclass
+class SeriesRef:
+    """Stands in for a bundle on meeting series rows."""
+
+    series: object
+
+    @property
+    def entity_id(self):
+        return self.series.entity_id
+
+
+@dataclass
 class Row:
     bundle: Bundle
     what: str
@@ -39,6 +52,7 @@ class Row:
     person: str = ""  # emp id shown instead of the owner (a workstream lead)
     ws: object = None  # workstream entity for per-workstream rows
     watch: bool = False  # watch list row: links to the watch item page
+    series: object = None  # meeting series row: links to the series page
 
 
 def triage(followups: bool = True, scope: str = "all", watch_list: bool = True) -> tuple[dict, list]:
@@ -124,6 +138,9 @@ def triage(followups: bool = True, scope: str = "all", watch_list: bool = True) 
         for f in followups_by_initiative.get(b.entity_id, []):
             rows["Chase"].append(Row(b, f"Follow-up overdue {f.days_overdue}d: {f.text[:80]}", f.due_date, "red"))
 
+    if followups:
+        rows["Chase"].extend(_missed_series_rows(set(current.values_list("entity_id", flat=True)), scope))
+
     if watch_list:
         for item in watch.open_items(scope):
             chips = watch.watch_warnings(item)
@@ -138,6 +155,25 @@ def triage(followups: bool = True, scope: str = "all", watch_list: bool = True) 
             flagged.add(r.bundle.entity_id)
     quiet = [b for b in active if b.entity_id not in flagged]
     return rows, quiet
+
+
+def _missed_series_rows(in_scope_ids, scope):
+    """Chase rows for non-ad-hoc meeting series whose last meeting is older than the cadence."""
+    from meetings.models import MeetingSeries
+
+    series = [s for s in MeetingSeries.objects.current() if s.cadence in SERIES_DUE_DAYS]
+    last = {k: v[1] for k, v in meetings_services.series_summaries(series).items()}
+    out = []
+    for srs in sorted(series, key=lambda x: x.name.lower()):
+        if scope == "sox" and not (in_scope_ids & {UUID(e) for e in srs.initiative_entities}):
+            continue
+        held = last[srs.entity_id]
+        since = held or MeetingSeries.objects.history(srs.entity_id).first().valid_from.date()
+        if (clock.today() - since).days <= SERIES_DUE_DAYS[srs.cadence]:
+            continue
+        what = f"{srs.name}: no meeting logged since {since:%b} {since.day}" if held else f"{srs.name}: no meetings logged yet"
+        out.append(Row(SeriesRef(srs), what, since, "amber", "review", series=srs))
+    return out
 
 
 def reminder_text(bundle, base_url: str = "", ws=None) -> str:

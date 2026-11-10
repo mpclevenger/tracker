@@ -151,3 +151,10 @@ Watch and dropped items are excluded from every initiative listing via `Initiati
   and its workstreams, with the workstream named in the reason ("Compute: High risk past due"). Leads check in
   for their workstream only. One exec tile per initiative with a roll-up line; the portfolio timeline shows one
   bar per stage; the Plan tab groups phases by workstream. Sign-offs and overrides stay at initiative level.
+
+## Meeting series (Nov 10)
+A series is a recurring touchpoint (name, cadence weekly / every 2 weeks / monthly / ad hoc, usual attendees,
+initiatives, default stage). Meetings can belong to one. "Log next meeting" prefills from the series and lists
+the series' open follow-ups so they can be closed in the same save. The series page shows all instances
+newest first plus open follow-ups; the initiative Meetings tab groups by series. A series with no meeting
+logged within its cadence shows under Overdue on the Workbench (ad hoc never does).

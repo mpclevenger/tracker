@@ -1,4 +1,4 @@
-"""Views: meetings log, meeting form and follow-up close/reopen."""
+"""Views: meetings log, meeting series, meeting form and follow-up close/reopen."""
 
 from uuid import UUID
 
@@ -13,8 +13,8 @@ from django.views.decorators.http import require_http_methods
 from core import clock
 from core.auth.decorators import forbidden
 from meetings import services
-from meetings.forms import CloseForm, FollowUpForm, MeetingForm
-from meetings.models import FollowUp, Meeting, MeetingInitiative
+from meetings.forms import CloseForm, FollowUpForm, MeetingForm, SeriesForm
+from meetings.models import FollowUp, Meeting, MeetingInitiative, MeetingSeries
 from tracker.models import Initiative
 from tracker.services import lifecycle as lifecycle_services
 from tracker.services.bundle import load_bundle
@@ -51,12 +51,23 @@ def initiative_tab_context(request, initiative):
     for f in FollowUp.objects.current().filter(meeting_entity__in=[m.entity_id for m in meetings]):
         if f.initiative_entity in (None, eid):
             followups.setdefault(f.meeting_entity, []).append(f)
+    cards = [{
+        "meeting": m,
+        "stage": lifecycle_services.stage_info(m.stage, guidance) if m.stage is not None else None,
+        "followups": _by_due(followups.get(m.entity_id, [])),
+    } for m in meetings]
+    series = {s.entity_id: s for s in MeetingSeries.objects.current()}
+    groups = []
+    for sid, s in sorted(series.items(), key=lambda kv: kv[1].name.lower()):
+        in_series = [c for c in cards if c["meeting"].series_entity == sid]
+        if in_series:
+            groups.append({"series": s, "cards": in_series})
+    if groups:
+        groups.append({"series": None, "cards": [c for c in cards if c["meeting"].series_entity not in series]})
     return {
-        "meetings_tab": [{
-            "meeting": m,
-            "stage": lifecycle_services.stage_info(m.stage, guidance) if m.stage is not None else None,
-            "followups": _by_due(followups.get(m.entity_id, [])),
-        } for m in meetings],
+        "meetings_tab": cards,
+        "meeting_groups": groups,
+        "can_view_series": request.actor.is_tech_risk or request.actor.is_auditor,
         "can_log_meeting": request.actor.is_tech_risk,
         "log_meeting_url": f"{reverse('meetings:new')}?initiative={eid}",
     }
@@ -88,6 +99,7 @@ def meeting_list(request):
         if not open_only or f.status == FollowUp.Status.OPEN:
             followups.setdefault(f.meeting_entity, []).append(f)
     guidance = lifecycle_services.current_guidance()
+    series = {s.entity_id: s for s in MeetingSeries.objects.current()}
     cards = []
     for m in meetings:
         fus = _by_due(followups.get(m.entity_id, []))
@@ -97,6 +109,7 @@ def meeting_list(request):
             "meeting": m,
             "stage": lifecycle_services.stage_info(m.stage, guidance) if m.stage is not None else None,
             "initiatives": sorted(links.get(m.entity_id, []), key=lambda i: i.name.lower()),
+            "series": series.get(m.series_entity),
             "followups": fus,
         })
     filter_choices = sorted(
@@ -116,20 +129,52 @@ def _initial_followups(meeting):
     } for f in rows]
 
 
+def _series_choices():
+    return [(str(s.entity_id), s.name) for s in sorted(MeetingSeries.objects.current(), key=lambda s: s.name.lower())]
+
+
+def _carried_rows(series_eid, meeting, post=None):
+    """Open follow-ups from earlier meetings in a series, with any posted close request."""
+    if series_eid is None:
+        return []
+    exclude = meeting.entity_id if meeting else None
+    held = {m.entity_id: m for m in services.series_meetings(series_eid)}
+    rows = []
+    for f in services.series_open_followups(series_eid, exclude):
+        key = str(f.entity_id)
+        row = {"followup": f, "meeting": held.get(f.meeting_entity), "key": key, "close": False, "note": "", "error": ""}
+        if post is not None:
+            row["close"] = post.get(f"close_{key}") == "on"
+            row["note"] = post.get(f"note_{key}", "").strip()
+            if row["close"] and not row["note"]:
+                row["error"] = "Enter a closure note to close this follow-up."
+        rows.append(row)
+    return rows
+
+
 @require_http_methods(["GET", "POST"])
 def meeting_edit(request, entity_id=None):
     if (denied := require_tech_risk_or_403(request)):
         return denied
     meeting = get_object_or_404(Meeting.objects.current(), entity_id=entity_id) if entity_id else None
     linked = services.linked_initiatives(meeting.entity_id) if meeting else set()
-    choices = _initiative_choices(linked)
+    preset_series = None
+    if request.method == "GET":
+        preset_series = MeetingSeries.objects.current().filter(
+            entity_id=meeting.series_entity if meeting else _parse_uuid(request.GET.get("series"))
+        ).first()
+    series_extra = {UUID(e) for e in preset_series.initiative_entities} if preset_series else set()
+    choices = _initiative_choices(linked | series_extra)
     kwargs = {"initiative_choices": choices}
-    form_kwargs = {**kwargs, "stage_choices": _stage_choices()}
+    form_kwargs = {**kwargs, "stage_choices": _stage_choices(), "series_choices": _series_choices()}
 
     if request.method == "POST":
         form = MeetingForm(request.POST, **form_kwargs)
         formset = FollowUpFormSet(request.POST, prefix="fu", form_kwargs=kwargs)
-        if form.is_valid() and formset.is_valid():
+        series_eid = _parse_uuid(request.POST.get("series"))
+        carried = _carried_rows(series_eid, meeting, request.POST)
+        valid = form.is_valid() & formset.is_valid()
+        if valid:
             picked = {UUID(v) for v in form.cleaned_data["initiatives"]}
             existing = (
                 {f.entity_id for f in FollowUp.objects.current().filter(meeting_entity=meeting.entity_id)}
@@ -149,28 +194,47 @@ def meeting_edit(request, entity_id=None):
                     "entity_id": cd.get("entity_id"), "delete": cd.get("DELETE", False), "text": cd.get("text", ""),
                     "owner": cd.get("owner", ""), "due_date": cd.get("due_date"), "initiative_entity": eid,
                 })
-            if not any(f.errors for f in formset):
+            if not any(f.errors for f in formset) and not any(c["error"] for c in carried):
                 with transaction.atomic():
-                    saved = services.save_meeting(request.actor.emp_id, meeting, form.cleaned_data, picked)
+                    saved = services.save_meeting(
+                        request.actor.emp_id, meeting, {**form.cleaned_data, "series_entity": series_eid}, picked
+                    )
                     services.save_followups(request.actor.emp_id, saved, rows)
+                    for c in carried:
+                        if c["close"]:
+                            services.close_followup(
+                                request.actor.emp_id, c["followup"], form.cleaned_data["held_on"], c["note"]
+                            )
                 messages.success(request, "Meeting saved.")
+                if series_eid:
+                    return redirect("meetings:series_detail", entity_id=series_eid)
                 return redirect("meetings:list")
     else:
         preset = _parse_uuid(request.GET.get("initiative"))
         initial = {"initiatives": [str(e) for e in linked] or ([str(preset)] if preset else [])}
+        allowed = {c[0] for c in choices}
+        target = Initiative.objects.current().listed().filter(entity_id=preset).first() if preset else None
         if meeting:
             initial.update({k: getattr(meeting, k) for k in services.MEETING_FIELDS})
         else:
             initial["held_on"] = clock.today()
-            target = Initiative.objects.current().listed().filter(entity_id=preset).first() if preset else None
             if target:
                 initial["stage"] = load_bundle(target).current_stage()
+            if preset_series:
+                initial.update({
+                    "what": preset_series.name, "who": preset_series.usual_attendees,
+                    "initiatives": [e for e in preset_series.initiative_entities if e in allowed],
+                })
+                if preset_series.default_stage is not None:
+                    initial["stage"] = preset_series.default_stage
+        initial["series"] = str(preset_series.entity_id) if preset_series else ""
+        carried = _carried_rows(preset_series.entity_id if preset_series else None, meeting)
         form = MeetingForm(initial=initial, **form_kwargs)
         formset = FollowUpFormSet(
             initial=_initial_followups(meeting) if meeting else None, prefix="fu", form_kwargs=kwargs
         )
     return render(request, "meetings/form.html", {
-        "nav": "meetings", "form": form, "formset": formset, "meeting": meeting,
+        "nav": "meetings", "form": form, "formset": formset, "meeting": meeting, "carried": carried,
     })
 
 
@@ -206,3 +270,88 @@ def followup_reopen(request, entity_id):
         services.reopen_followup(request.actor.emp_id, fu)
         messages.success(request, "Follow-up reopened.")
     return redirect("meetings:list")
+
+
+# --- series ------------------------------------------------------------------------------
+
+
+def _series_viewer_or_403(request):
+    if not (request.actor.is_tech_risk or request.actor.is_auditor):
+        return forbidden(request)
+    return None
+
+
+def _visible_initiatives(actor, ids):
+    """Visible initiatives among the given entity ids, sorted by name."""
+    wanted = {UUID(str(e)) for e in ids}
+    return sorted((i for i in initiatives_for(actor) if i.entity_id in wanted), key=lambda i: i.name.lower())
+
+
+@require_http_methods(["GET"])
+def series_list(request):
+    if (denied := _series_viewer_or_403(request)):
+        return denied
+    series = list(MeetingSeries.objects.current())
+    summaries = services.series_summaries(series)
+    rows = [{
+        "series": s,
+        "initiatives": _visible_initiatives(request.actor, s.initiative_entities),
+        "count": summaries[s.entity_id][0], "last_held": summaries[s.entity_id][1],
+        "open_followups": summaries[s.entity_id][2],
+    } for s in sorted(series, key=lambda s: s.name.lower())]
+    return render(request, "meetings/series_list.html", {"nav": "meetings", "rows": rows})
+
+
+@require_http_methods(["GET"])
+def series_detail(request, entity_id):
+    if (denied := _series_viewer_or_403(request)):
+        return denied
+    series = get_object_or_404(MeetingSeries.objects.current(), entity_id=entity_id)
+    meetings = services.series_meetings(entity_id)
+    followups = {}
+    for f in FollowUp.objects.current().filter(meeting_entity__in=[m.entity_id for m in meetings]):
+        followups.setdefault(f.meeting_entity, []).append(f)
+    guidance = lifecycle_services.current_guidance()
+    cards = [{
+        "meeting": m,
+        "stage": lifecycle_services.stage_info(m.stage, guidance) if m.stage is not None else None,
+        "followups": _by_due(followups.get(m.entity_id, [])),
+    } for m in meetings]
+    return render(request, "meetings/series_detail.html", {
+        "nav": "meetings", "series": series, "cards": cards,
+        "initiatives": _visible_initiatives(request.actor, series.initiative_entities),
+        "open_followups": services.series_open_followups(entity_id),
+    })
+
+
+@require_http_methods(["GET", "POST"])
+def series_edit(request, entity_id=None):
+    if (denied := require_tech_risk_or_403(request)):
+        return denied
+    series = get_object_or_404(MeetingSeries.objects.current(), entity_id=entity_id) if entity_id else None
+    current = {UUID(e) for e in series.initiative_entities} if series else set()
+    form_kwargs = {"initiative_choices": _initiative_choices(current), "stage_choices": _stage_choices()}
+    if request.method == "POST":
+        form = SeriesForm(request.POST, **form_kwargs)
+        if form.is_valid():
+            picked = {UUID(v) for v in form.cleaned_data["initiatives"]}
+            saved = services.save_series(request.actor.emp_id, series, form.cleaned_data, picked)
+            messages.success(request, "Series saved.")
+            return redirect("meetings:series_detail", entity_id=saved.entity_id)
+    else:
+        initial = {}
+        if series:
+            initial = {k: getattr(series, k) for k in services.SERIES_FIELDS}
+            initial["initiatives"] = list(series.initiative_entities)
+        form = SeriesForm(initial=initial, **form_kwargs)
+    return render(request, "meetings/series_form.html", {"nav": "meetings", "form": form, "series": series})
+
+
+@require_http_methods(["POST"])
+def series_remove(request, entity_id):
+    if (denied := require_tech_risk_or_403(request)):
+        return denied
+    series = get_object_or_404(MeetingSeries.objects.current(), entity_id=entity_id)
+    services.remove_series(request.actor.emp_id, series)
+    messages.success(request, "Series removed. Its meetings are kept.")
+    return redirect("meetings:series_list")

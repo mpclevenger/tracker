@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ series.name }} · IT Initiative Risk Tracker{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center gap-3 flex-wrap mb-2">
+  <h1 class="m-0 flex-grow-1">{{ series.name }}</h1>
+  <a class="small" href="{% url 'meetings:series_list' %}">All series</a>
+  {% if actor.is_tech_risk %}
+  <a class="small" href="{% url 'meetings:series_edit' series.entity_id %}">Edit series</a>
+  <a class="btn btn-primary btn-sm" href="{% url 'meetings:new' %}?series={{ series.entity_id }}">Log next meeting</a>
+  {% endif %}
+</div>
+<div class="card"><div class="card-body">
+  <dl class="kv mb-0">
+    <dt>Cadence</dt><dd>{{ series.get_cadence_display }}</dd>
+    {% if series.description %}<dt>Description</dt><dd>{{ series.description }}</dd>{% endif %}
+    <dt>Usual attendees</dt><dd>{{ series.usual_attendees|default:"—"|linebreaksbr }}</dd>
+    <dt>Initiatives</dt><dd>{% for i in initiatives %}<a class="pill outline text-decoration-none" href="{% url 'initiative' i.entity_id %}">{{ i.name }}</a> {% empty %}—{% endfor %}</dd>
+  </dl>
+</div></div>
+
+<h2 class="sect">Open follow-ups</h2>
+{% if open_followups %}
+<div class="card"><div class="card-body pt-0">{% include "meetings/partials/followups_table.html" with followups=open_followups %}</div></div>
+{% else %}
+<div class="muted">None open</div>
+{% endif %}
+
+<h2 class="sect">Meetings</h2>
+{% for c in cards %}{% with m=c.meeting %}
+<div class="card" id="mtg-{{ m.entity_id }}"><div class="card-body">
+  <div class="d-flex align-items-baseline gap-2 mb-1">
+    <b>{{ m.held_on|short_date }}</b>{% include "meetings/partials/stage_pill.html" with stage=c.stage %}
+    <span class="flex-grow-1"></span>
+    {% if actor.is_tech_risk %}<a class="small" href="{% url 'meetings:edit' m.entity_id %}">Edit</a>{% endif %}
+  </div>
+  {% include "meetings/partials/meeting_fields.html" %}
+  {% include "meetings/partials/followups_table.html" with followups=c.followups %}
+</div></div>
+{% endwith %}{% empty %}
+<div class="muted">No meetings logged</div>
+{% endfor %}
+
+{% if actor.is_tech_risk %}
+<details class="mt-4">
+  <summary class="small text-danger">Remove series</summary>
+  <form method="post" action="{% url 'meetings:series_remove' series.entity_id %}" class="mt-2">{% csrf_token %}
+    <p class="small mb-2">This removes the series. Its meetings are kept and become one-off meetings.</p>
+    <button class="btn btn-danger btn-sm">Confirm remove</button>
+  </form>
+</details>
+{% endif %}
+{% endblock %}

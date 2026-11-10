@@ -4,10 +4,11 @@ from django.db import transaction
 from django.db.models import Q
 
 from core import clock
-from meetings.models import FollowUp, Meeting, MeetingInitiative
+from meetings.models import FollowUp, Meeting, MeetingInitiative, MeetingSeries
 from tracker.services import curation
 
-MEETING_FIELDS = ("held_on", "what", "who", "result", "stage")
+MEETING_FIELDS = ("held_on", "what", "who", "result", "stage", "series_entity")
+SERIES_FIELDS = ("name", "cadence", "usual_attendees", "initiative_entities", "default_stage", "description")
 FOLLOWUP_FIELDS = ("text", "owner", "due_date", "initiative_entity")
 
 
@@ -61,7 +62,7 @@ def _touch_all(author, entity_ids, what):
 def save_meeting(author, meeting, data, initiative_entities):
     """Create or edit a meeting and reconcile its initiative links; returns the current version."""
     wanted = set(initiative_entities)
-    values = {k: data[k] for k in MEETING_FIELDS}
+    values = {k: data[k] for k in MEETING_FIELDS if k != "series_entity" or k in data}
     if meeting is None:
         meeting = Meeting.create(author, **values)
     elif any(getattr(meeting, k) != v for k, v in values.items()):
@@ -131,3 +132,51 @@ def reopen_followup(author, followup):
     if reopened.initiative_entity:
         curation.touch(reopened.initiative_entity, author, "follow-up reopened")
     return reopened
+
+
+def series_meetings(series_entity):
+    """Current meetings in a series, newest first."""
+    return list(Meeting.objects.current().filter(series_entity=series_entity).order_by("-held_on", "-valid_from"))
+
+
+def series_open_followups(series_entity, exclude_meeting=None):
+    """Open follow-ups across a series, optionally leaving out one meeting's own."""
+    ids = Meeting.objects.current().filter(series_entity=series_entity).values("entity_id")
+    qs = FollowUp.objects.current().filter(status=FollowUp.Status.OPEN, meeting_entity__in=ids)
+    if exclude_meeting is not None:
+        qs = qs.exclude(meeting_entity=exclude_meeting)
+    return _sorted_by_due(qs)
+
+
+def series_summaries(series_list):
+    """{series entity_id: (meeting count, last held date, open follow-up count)}."""
+    out = {s.entity_id: [0, None, 0] for s in series_list}
+    meeting_series = {}
+    for m in Meeting.objects.current().filter(series_entity__in=list(out)):
+        row = out[m.series_entity]
+        row[0] += 1
+        row[1] = max(row[1], m.held_on) if row[1] else m.held_on
+        meeting_series[m.entity_id] = m.series_entity
+    for f in FollowUp.objects.current().filter(status=FollowUp.Status.OPEN, meeting_entity__in=list(meeting_series)):
+        out[meeting_series[f.meeting_entity]][2] += 1
+    return {k: tuple(v) for k, v in out.items()}
+
+
+@transaction.atomic
+def save_series(author, series, data, initiative_entities):
+    """Create or edit a meeting series; returns the current version."""
+    values = {k: data[k] for k in SERIES_FIELDS if k != "initiative_entities"}
+    values["initiative_entities"] = sorted(str(e) for e in initiative_entities)
+    if series is None:
+        return MeetingSeries.create(author, **values)
+    if any(getattr(series, k) != v for k, v in values.items()):
+        return series.new_version(author, **values)
+    return series
+
+
+@transaction.atomic
+def remove_series(author, series):
+    """Retire a series and un-link its meetings, which are kept."""
+    for m in Meeting.objects.current().filter(series_entity=series.entity_id):
+        m.new_version(author, series_entity=None)
+    return series.retire(author)

@@ -91,7 +91,7 @@ def test_stage_rows_meeting_counts_and_signoff(init):
     set_level(init, "enhanced")
     bundle = load_bundle(Initiative.objects.get_current(init.entity_id))
     rows = build_stage_rows(bundle, actor(TR))
-    assert len(rows[2]["meetings"]) == 1 and rows[3]["meetings"] == []
+    assert len(rows[2]["meetings"]) == 3 and rows[3]["meetings"] == []
     assert rows[2]["can_record"] is False
     for i in range(rows[2]["total"]):
         lifecycle.accept_item(bundle, TR, 2, i, evidence_ref="ev")

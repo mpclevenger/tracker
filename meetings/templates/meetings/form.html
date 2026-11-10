@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}{% if meeting %}Edit meeting{% else %}Log a meeting{% endif %} · IT Initiative Risk Tracker{% endblock %}
 {% block content %}
 <h1>{% if meeting %}Edit meeting{% else %}Log a meeting{% endif %}</h1>
@@ -7,8 +8,9 @@
     <div class="row g-2 mb-2">
       <div class="col-auto">{% include "meetings/partials/field.html" with field=form.held_on %}</div>
       <div class="col">{% include "meetings/partials/field.html" with field=form.stage %}</div>
+      <div class="col">{% include "meetings/partials/field.html" with field=form.series %}</div>
     </div>
-    {% for field in form %}{% if field.name != "initiatives" and field.name != "held_on" and field.name != "stage" %}
+    {% for field in form %}{% if field.name != "initiatives" and field.name != "held_on" and field.name != "stage" and field.name != "series" %}
       <div class="mb-2">{% include "meetings/partials/field.html" with field=field %}</div>
     {% endif %}{% endfor %}
     <div class="mb-0">
@@ -19,6 +21,24 @@
       {% for e in form.initiatives.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
     </div>
   </div></div>
+
+  {% if carried %}
+  <h2 class="sect">Open from earlier meetings</h2>
+  <table class="table table-sm align-middle bg-white">
+    <thead><tr><th>Follow-up</th><th style="width:14%">Owner</th><th style="width:12%">Due</th><th style="width:8%">Close</th><th style="width:30%">Closure note</th></tr></thead>
+    <tbody>
+    {% for c in carried %}
+    <tr>
+      <td>{{ c.followup.text }}{% if c.meeting %}<div class="small muted">{{ c.meeting.held_on|short_date }}</div>{% endif %}</td>
+      <td class="small">{{ c.followup.owner|default:"—" }}</td>
+      <td class="small">{{ c.followup.due_date|short_date }}</td>
+      <td><input type="checkbox" class="form-check-input" name="close_{{ c.key }}" aria-label="Close" {% if c.close %}checked{% endif %}></td>
+      <td><input type="text" class="form-control form-control-sm" name="note_{{ c.key }}" value="{{ c.note }}" placeholder="Required to close">{% if c.error %}<div class="text-danger small">{{ c.error }}</div>{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
 
   <h2 class="sect">Follow-ups</h2>
   {{ formset.management_form }}

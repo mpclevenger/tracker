@@ -18,6 +18,11 @@ How to run the tracker day to day. Almost everything is done in the app; nothing
 - **The tracker itself** is prefilled in `scripts/initiatives/risk_tracker.yaml`: replace every `CHANGE_ME`, check the lines marked CONFIRM, then load it as below.
 - **From a file** (for one with a lot of history): copy `scripts/initiative_template.yaml`, fill it in, then run `python scripts/load_initiative.py my_initiative.yaml`. It won't overwrite an existing initiative.
 
+## Recurring meetings
+- **Meetings › Series › Add series** for a standing touchpoint (e.g. weekly steering): cadence, usual attendees, initiatives.
+- From the series page, **Log next meeting** fills in the title, attendees and initiatives; close carried-over follow-ups on the same form.
+- If nothing is logged within the cadence, the series shows under Overdue on the Workbench.
+
 ## Large initiatives (workstreams)
 For one initiative with several parts, such as a data lake with front end, back end, compute and admin.
 - Initiative page › **Actions › Workstreams**: add each part and its lead.

@@ -216,7 +216,7 @@ def build(actor, snapshot: Snapshot | None = None, followups: bool = True, scope
         ctx.prev_counts[tl.prior or tl.effective] += 1  # new since the snapshot: counted in its current color
         if tl.prior and tl.prior != tl.effective:
             ctx.movers[tl.effective].append(tl)
-    ctx.attention = sorted([tl for tl in active if tl.effective != "green"], key=lambda tl: -RAG_ORDER[tl.effective])
+    ctx.attention = sorted([tl for tl in active if tl.effective != "green"], key=lambda tl: (-RAG_ORDER[tl.effective], tl.name.lower()))
     ctx.on_track = [tl for tl in active if tl.effective == "green"]
     ctx.upcoming = sorted(
         [tl for tl in active if tl.days_to_go_live is not None and 0 <= tl.days_to_go_live <= 90],

@@ -81,6 +81,8 @@ def test_triage_rows_link_to_their_tab(client, seeded):
     rows, _quiet = triage.triage()
     for items in rows.values():
         for row in items:
+            if row.series:
+                continue
             if row.action == "review":
                 assert f'/initiative/{row.bundle.entity_id}/?tab={row.tab}">Open →' in body
             elif row.action == "curate":

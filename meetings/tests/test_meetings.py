@@ -212,7 +212,7 @@ def test_list_permissions(seeded, as_user):
 
 
 def test_auditor_read_only(seeded, as_user):
-    m = Meeting.objects.current().get()
+    m = Meeting.objects.current().get(what="Connector defects checkpoint")
     f = FollowUp.objects.current().filter(status="open").get()
     c = as_user(AUD)
     html = c.get(reverse("meetings:list")).content.decode()
@@ -277,7 +277,7 @@ def test_initiative_meetings_partial(seeded, rf):
     assert "Overdue" in html and "Close" in html and "2. Build" in html
     request.actor = _actor(AUD)
     html = render_to_string("meetings/partials/initiative_meetings.html", {**initiative_tab_context(request, seeded), "actor": request.actor}, request)
-    assert "Log a meeting" not in html and "Close" not in html and "Overdue" in html
+    assert "Log a meeting" not in html and ">Close</a>" not in html and "Overdue" in html
 
 
 def test_form_defaults_to_initiative_stage(seeded, as_user):
@@ -346,7 +346,7 @@ def test_overdue_does_not_affect_rag(bare, fixed_today):
 
 
 def test_history_includes_meeting_and_followup(seeded, as_user):
-    m = services.save_meeting(TR, Meeting.objects.current().get(), data(what="Renamed sample"), [seeded.entity_id])
+    m = services.save_meeting(TR, Meeting.objects.current().get(what="Connector defects checkpoint"), data(what="Renamed sample"), [seeded.entity_id])
     services.save_meeting(TR, m, data(what="Renamed sample", result="Edited points"), [seeded.entity_id])
     html = as_user(TR).get(reverse("initiative_history", args=[seeded.entity_id])).content.decode()
     assert "Meeting · " in html and "Edited points" in html
@@ -355,8 +355,8 @@ def test_history_includes_meeting_and_followup(seeded, as_user):
 
 def test_seed_is_idempotent(seeded):
     generate_fake_data(stdout=lambda *a: None)
-    assert Meeting.objects.current().count() == 1
-    assert FollowUp.objects.current().count() == 2
+    assert Meeting.objects.current().count() == 3
+    assert FollowUp.objects.current().count() == 3
 
 
 def test_untagged_followup_takes_single_linked_initiative(bare, second):
