@@ -2,6 +2,7 @@
 
 from django.http import Http404
 from django.shortcuts import get_object_or_404
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from core.auth.decorators import forbidden
 from tracker.models import Initiative
@@ -57,3 +58,10 @@ def close_modal_response():
     from django.http import HttpResponse
 
     return HttpResponse("")
+
+
+def safe_next(request) -> str:
+    """The `next` URL from the request when it stays on this site, else empty."""
+    nxt = request.POST.get("next") or request.GET.get("next", "")
+    ok = nxt and url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}, require_https=request.is_secure())
+    return nxt if ok else ""

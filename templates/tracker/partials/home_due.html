@@ -1,0 +1,3 @@
+{% if r.closed or not r.due %}—
+{% elif r.overdue %}<span class="due-over">Overdue {{ r.overdue }}d</span>
+{% else %}<span class="{% if r.due_soon %}due-soon{% endif %}">Due {{ r.due|date:"M j" }}</span>{% endif %}

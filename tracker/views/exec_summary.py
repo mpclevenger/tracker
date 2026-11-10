@@ -1,11 +1,11 @@
-"""Views: landing redirect, exec summary (live or snapshot) and the read-only shared link."""
+"""Views: exec summary (live or snapshot) and the read-only shared link."""
 
 from datetime import date
 
 from django.contrib import messages
 from django.core import signing
 from django.http import Http404
-from django.shortcuts import redirect, render
+from django.shortcuts import render
 from django.urls import reverse
 
 from core.auth.actor import ANONYMOUS, Actor
@@ -15,19 +15,6 @@ from tracker.models import Snapshot
 from tracker.services import exec_summary as exec_svc
 from tracker.services import timeline
 from tracker.views.common import resolve_scope, scope_context
-
-
-def home(request):
-    """Land each actor on their page: exec roles on the summary, owners on their initiative."""
-    actor = request.actor
-    if not actor.is_authenticated:
-        return forbidden(request, "Sign in to continue.")
-    if actor.sees_exec_pages:
-        # Rendered in place (no redirect) so the landing URL answers 200 for exec roles.
-        return exec_summary(request)
-    if actor.is_any_owner:
-        return redirect("my_initiative")
-    return render(request, "tracker/no_role.html", {"nav": ""})
 
 
 def _parse_as_of(raw):

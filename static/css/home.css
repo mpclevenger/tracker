@@ -1,0 +1,35 @@
+/* home page */
+.home-actions { display: flex; flex-wrap: nowrap; gap: 12px; margin: 12px 0 8px; align-items: flex-start; }
+.home-actions .btn-lg { font-size: 15px; padding: 10px 20px; }
+.home-pick { position: relative; }
+.home-pick > summary { list-style: none; cursor: pointer; }
+.home-pick > summary::-webkit-details-marker { display: none; }
+.home-pick-panel { position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; width: 320px; background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.14); padding: 12px; }
+.home-sec { margin-bottom: 8px; }
+.home-row-actions { display: flex; gap: 6px; justify-content: flex-end; align-items: flex-start; }
+.home-return { position: relative; }
+.home-return > summary { list-style: none; cursor: pointer; }
+.home-return > summary::-webkit-details-marker { display: none; }
+.home-return-panel { position: absolute; z-index: 20; right: 0; top: calc(100% + 4px); width: 280px; background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.14); padding: 10px; }
+.due-over { color: var(--red); font-weight: 600; }
+.due-soon { color: var(--amber); font-weight: 600; }
+
+/* nav more menu */
+.nav-more { position: relative; }
+.nav-more > summary { list-style: none; cursor: pointer; }
+.nav-more > summary::-webkit-details-marker { display: none; }
+.nav-more-panel { position: absolute; z-index: 30; top: 100%; left: 0; min-width: 200px; background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.18); padding: 4px; }
+.nav-more-panel a { display: block; padding: 6px 12px; border-radius: 5px; color: var(--ink); text-decoration: none; }
+.nav-more-panel a:hover { background: #f3f4f6; }
+.nav-more-panel a.active { font-weight: 600; background: #eef4fc; }
+
+/* comments */
+.cmt { padding: 6px 0; border-bottom: 1px solid var(--line); }
+.cmt:last-child { border-bottom: 0; }
+.cmt-meta { font-size: 12.5px; color: var(--muted); }
+.cmt-wait { color: #7d4e00; }
+.cmt-actions { display: flex; gap: 6px; margin-top: 4px; }
+
+/* section headers */
+.ini-sec-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.ini-sec-head h2.h6 { margin: 0; }

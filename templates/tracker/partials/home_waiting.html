@@ -1,0 +1,35 @@
+{% load ui %}
+{% if waiting %}
+<section class="home-sec">
+  <h2 class="sect">Waiting for Tech Risk <span class="small muted">· {{ waiting|length }}</span></h2>
+  <div class="card"><table class="table table-sm align-middle mb-0">
+    <tbody>
+    {% for i in waiting %}
+    <tr>
+      <td style="width:28%">{% if actor.is_tech_risk or i.entity_id in linkable %}<a href="{% url 'initiative' i.entity_id %}">{{ i.name }}</a>{% else %}{{ i.name }}{% endif %}</td>
+      {% if actor.is_tech_risk %}
+      <td class="small">Owner {{ i.owner_emp_id|person }}{% if i.submitted_at %} · submitted {{ i.submitted_at|short_date }}{% endif %}</td>
+      <td class="home-row-actions">
+        <form method="post" action="{% url 'intake_accept' i.entity_id %}" class="m-0">{% csrf_token %}
+          <input type="hidden" name="next" value="{% url 'home' %}">
+          <button class="btn btn-sm btn-primary">Accept</button>
+        </form>
+        <details class="home-return">
+          <summary class="btn btn-sm btn-outline-secondary">Return</summary>
+          <form method="post" action="{% url 'intake_return' i.entity_id %}" class="home-return-panel">{% csrf_token %}
+            <input type="hidden" name="next" value="{% url 'home' %}">
+            <input name="comments" class="form-control form-control-sm mb-1" placeholder="Comments for the owner" aria-label="Comments for the owner" required>
+            <button class="btn btn-sm btn-outline-secondary">Send back</button>
+          </form>
+        </details>
+      </td>
+      {% else %}
+      <td class="small">Submitted {{ i.submitted_at|short_date }}. Tech Risk will accept it or send it back.
+        {% if i.intake_comments %}<div class="warn mt-1"><b>Returned:</b> {{ i.intake_comments }}</div>{% endif %}</td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endif %}

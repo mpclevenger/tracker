@@ -2,7 +2,7 @@
 {% load ui %}
 {% block title %}{{ initiative.name }} · IT Initiative Risk Tracker{% endblock %}
 {% block content %}
-{% if actor.sees_exec_pages %}<div class="small mb-1"><a href="{% url 'exec_summary' %}">← Exec summary</a></div>{% endif %}
+<div class="small mb-1"><a href="{% url 'home' %}">← Initiatives</a></div>
 
 <div class="ini-head">
   <div class="ini-head-main">
@@ -56,7 +56,7 @@
         {% endif %}
         <a href="#" class="ini-mi" hx-get="{% url 'oversight_modal' eid %}" hx-target="#modal" hx-swap="innerHTML">Oversight</a>
         <a href="#" class="ini-mi" hx-get="{% url 'edit_people' eid %}" hx-target="#modal" hx-swap="innerHTML" title="Owner and delegates">People</a>
-        <a href="{% url 'edit_workstreams' eid %}" class="ini-mi" title="Parts of this initiative, each with a lead">Workstreams</a>
+        <a href="{% url 'edit_workstreams' eid %}?next={{ tab_url|urlencode }}" class="ini-mi" title="Parts of this initiative, each with a lead">Workstreams</a>
         <hr class="my-1">
         {% if initiative.status == "proposed" %}
           <form method="post" action="{% url 'intake_accept' eid %}" class="ini-mi-form">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-primary btn-sm">Accept</button></form>
@@ -145,7 +145,7 @@
 {% endif %}
 
 <section class="ini-sec">
-  <h2 class="h6">About</h2>
+  {% include "tracker/partials/sec_head.html" with title="About" edit_name="edit_initiative" %}
   <dl class="kv mb-0">
     <dt>Owner</dt><dd>{{ initiative.owner_emp_id|person }}</dd>
     <dt>Delegates</dt><dd>{% for d in delegates %}{{ d|person }}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>
@@ -154,6 +154,8 @@
     {% if initiative.status == "closed" and initiative.closure_control_outcome %}<dt>Closure outcome</dt><dd>{{ initiative.closure_control_outcome }}</dd>{% endif %}
   </dl>
 </section>
+
+{% include "tracker/partials/comments.html" %}
 
 {% elif tab == "exec" %}
 <section class="ini-sec">
@@ -203,22 +205,48 @@
 
 {% elif tab == "plan" %}
 <div class="card"><div class="card-body timeline-scroll">{{ timeline_svg|safe_svg }}</div></div>
-<table class="table table-sm"><thead><tr><th>Milestone</th><th>Key</th><th>Status</th><th>Planned</th><th>Forecast</th><th>Actual</th><th>%</th><th>Slip (d)</th><th>Note</th></tr></thead><tbody>
+<section class="ini-sec">
+  {% include "tracker/partials/sec_head.html" with title="Phases" edit_name="edit_phases" %}
+  {% if phase_rows %}
+  <table class="table table-sm mb-0"><thead><tr><th>Phase</th><th>Stage</th><th>Planned</th><th>Forecast</th><th>Actual</th></tr></thead><tbody>
+    {% for p, stage_name in phase_rows %}
+    <tr><td>{{ p.name }}</td><td>{{ stage_name }}</td>
+      <td class="small">{{ p.planned_start|short_date }} – {{ p.planned_end|short_date }}</td>
+      <td class="small">{{ p.forecast_start|short_date }} – {{ p.forecast_end|short_date }}</td>
+      <td class="small">{{ p.actual_start|short_date }} – {{ p.actual_end|short_date }}</td></tr>
+    {% endfor %}
+  </tbody></table>
+  {% else %}<span class="muted small">{% include "tracker/partials/empty_add.html" with what="phases" edit_name="edit_phases" %}</span>{% endif %}
+</section>
+
+<section class="ini-sec">
+  {% include "tracker/partials/sec_head.html" with title="Milestones" edit_name="edit_milestones" %}
+  {% if bundle.milestones %}
+  <table class="table table-sm mb-0"><thead><tr><th>Milestone</th><th>Key</th><th>Status</th><th>Planned</th><th>Forecast</th><th>Actual</th><th>%</th><th>Slip (d)</th><th>Note</th></tr></thead><tbody>
   {% for m in bundle.milestones %}
   <tr><td>{{ m.name }}</td><td>{% if m.is_key %}●{% endif %}</td>
     <td>{% if m.status == "slipped" %}{% rag_pill "red" m.get_status_display %}{% elif m.status == "planned" %}{% rag_pill "grey" m.get_status_display %}{% else %}{% rag_pill "green" m.get_status_display %}{% endif %}</td>
     <td>{{ m.planned|short_date }}</td><td>{{ m.forecast|short_date }}</td><td>{{ m.actual|short_date }}</td><td>{{ m.pct_complete }}%</td>
     <td>{% if m.slippage_days is not None %}{% if m.slippage_days > 0 %}+{% endif %}{{ m.slippage_days }}{% else %}—{% endif %}</td><td class="small">{{ m.note }}</td></tr>
-  {% empty %}<tr><td colspan="9" class="muted">None</td></tr>{% endfor %}
-</tbody></table>
-{% if can_edit %}<p class="small"><a href="{% url 'edit_initiative' eid %}">More edits</a>
-  <span class="muted">·</span> <a href="{% url 'edit_phases' eid %}">Phases</a> <span class="muted">·</span> <a href="{% url 'edit_milestones' eid %}">Milestones</a>
-  <span class="muted">·</span> <a href="{% url 'edit_risks' eid %}">Risks</a> <span class="muted">·</span> <a href="{% url 'edit_controls' eid %}">Controls</a>
-  <span class="muted">·</span> <a href="{% url 'edit_workstreams' eid %}">Workstreams</a></p>{% endif %}
+  {% endfor %}
+  </tbody></table>
+  {% else %}<span class="muted small">{% include "tracker/partials/empty_add.html" with what="milestones" edit_name="edit_milestones" %}</span>{% endif %}
+</section>
+
+{% if can_edit or bundle.workstreams %}
+<section class="ini-sec">
+  {% include "tracker/partials/sec_head.html" with title="Workstreams" edit_name="edit_workstreams" %}
+  {% if bundle.workstreams %}
+  <table class="table table-sm mb-0"><thead><tr><th>Workstream</th><th>Lead</th><th>Description</th></tr></thead><tbody>
+    {% for w in bundle.workstreams %}<tr><td><b>{{ w.name }}</b></td><td class="small">{{ w.lead_emp_id|person|default:"—" }}</td><td class="small">{{ w.description }}</td></tr>{% endfor %}
+  </tbody></table>
+  {% else %}<span class="muted small">{% include "tracker/partials/empty_add.html" with what="workstreams" edit_name="edit_workstreams" %}</span>{% endif %}
+</section>
+{% endif %}
 
 {% elif tab == "risks" %}
 <section class="ini-sec">
-<h2 class="h6">Risks, issues and dependencies</h2>
+{% include "tracker/partials/sec_head.html" with title="Risks, issues and dependencies" edit_name="edit_risks" %}
 {% if actor.is_tech_risk %}
 <details class="ini-vis"><summary class="btn btn-outline-secondary btn-sm">Edit visibility</summary>
   <ul class="ini-vis-list">{% for r in risks %}<li><span>{{ r.title }}</span>{% include "tracker/partials/vis_select.html" with kind="risk" item_entity=r.entity_id current=r.visibility %}</li>{% empty %}<li class="muted">None</li>{% endfor %}</ul>
@@ -232,12 +260,12 @@
     <td>{% rating_pill r.rating %}</td><td>{{ r.owner }}</td><td>{{ r.target_date|short_date }}</td><td>{{ r.get_status_display }}</td>
     <td class="small">{{ r.mitigation }}</td>
   </tr>
-  {% empty %}<tr><td colspan="7" class="muted">None</td></tr>{% endfor %}
+  {% empty %}<tr><td colspan="7" class="muted small">{% include "tracker/partials/empty_add.html" with what="risks" edit_name="edit_risks" %}</td></tr>{% endfor %}
 </tbody></table>
 </section>
 
 <section class="ini-sec">
-<h2 class="h6">Control impact</h2>
+{% include "tracker/partials/sec_head.html" with title="Control impact" edit_name="edit_controls" %}
 {% if actor.is_tech_risk %}
 <details class="ini-vis"><summary class="btn btn-outline-secondary btn-sm">Edit visibility</summary>
   <ul class="ini-vis-list">{% for row in impact_rows %}<li><span>{{ row.control.control_id }} · {{ row.control.name }}</span>{% include "tracker/partials/vis_select.html" with kind="impact" item_entity=row.impact.entity_id current=row.impact.visibility %}</li>{% empty %}<li class="muted">None</li>{% endfor %}</ul>
@@ -260,7 +288,7 @@
       </form>{% endif %}</td>
     {% endif %}
   </tr>
-  {% empty %}<tr><td colspan="7" class="muted">None</td></tr>{% endfor %}
+  {% empty %}<tr><td colspan="7" class="muted small">{% include "tracker/partials/empty_add.html" with what="controls" edit_name="edit_controls" %}</td></tr>{% endfor %}
 </tbody></table>
 </section>
 
@@ -280,4 +308,5 @@
 {% empty %}<div class="muted">None posted</div>{% endfor %}
 {% if show_history_link %}<p><a href="{% url 'initiative_history' eid %}">Field-level history →</a></p>{% endif %}
 {% endif %}
+{% if open_checkin and can_check_in %}<div hx-get="{% url 'check_in' eid %}" hx-trigger="load" hx-target="#modal" hx-swap="innerHTML"></div>{% endif %}
 {% endblock %}

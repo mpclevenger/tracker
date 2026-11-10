@@ -45,9 +45,9 @@
         </form>
       </div>
       {% elif r.watch %}
-      <a href="{% url 'watch_item' init.entity_id %}">Review →</a>
+      <a href="{% url 'watch_item' init.entity_id %}{{ r.anchor }}">Review →</a>
       {% elif r.action == "review" %}
-      <a href="{% url 'initiative' init.entity_id %}?tab={{ r.tab }}">Open →</a>
+      <a href="{% url 'initiative' init.entity_id %}?tab={{ r.tab }}{{ r.anchor }}">{% if r.anchor %}Review →{% else %}Open →{% endif %}</a>
       {% elif r.action == "remind" %}
       <button type="button" class="btn btn-sm btn-outline-secondary" hx-get="{% url 'reminder_modal' init.entity_id %}{% if r.ws %}?ws={{ r.ws }}{% endif %}" hx-target="#modal" hx-swap="innerHTML">Copy reminder</button>
       {% else %}

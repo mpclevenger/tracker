@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Initiatives · IT Initiative Risk Tracker{% endblock %}
+{% block content %}
+<h1>Initiatives</h1>
+{% include "tracker/partials/home_buttons.html" %}
+
+{% if mine %}
+<section class="home-sec">
+  <h2 class="sect">My initiatives <span class="small muted">· {{ mine|length }}</span></h2>
+  <div class="card"><table class="table table-sm align-middle mb-0">
+    <thead><tr><th>Name</th><th>Status</th><th>Next check-in</th><th></th></tr></thead>
+    <tbody>
+    {% for r in mine %}
+    <tr>
+      <td><b>{{ r.init.name }}</b></td>
+      {% include "tracker/partials/home_rows.html" %}
+      <td class="small">{% include "tracker/partials/home_due.html" %}</td>
+      <td class="home-row-actions">
+        {% if r.can_check_in %}<button type="button" class="btn btn-sm btn-primary" hx-get="{% url 'check_in' r.init.entity_id %}" hx-target="#modal" hx-swap="innerHTML">Check in</button>{% endif %}
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'initiative' r.init.entity_id %}">Open</a>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endif %}
+
+{% include "tracker/partials/home_waiting.html" %}
+
+{% if show_all %}
+<section class="home-sec">
+  <h2 class="sect">All initiatives <span class="small muted">· {{ all_rows|length }}</span></h2>
+  <div class="d-flex align-items-center gap-3 flex-wrap mb-2">
+    <div class="flex-grow-1">{% include "tracker/partials/scope_toggle.html" %}</div>
+    <form method="get" class="d-flex gap-2 m-0">
+      <input type="hidden" name="scope" value="{{ scope }}">
+      <input type="search" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Search by name" aria-label="Search by name" style="width:240px">
+      <button class="btn btn-sm btn-outline-secondary">Search</button>
+      {% if q %}<a class="btn btn-sm btn-link" href="?scope={{ scope }}">Clear</a>{% endif %}
+    </form>
+  </div>
+  <div class="card"><table class="table table-sm align-middle mb-0">
+    <thead><tr><th>Name</th><th>Status</th><th>Stage</th><th>Go-live</th><th>Owner</th><th>Next check-in</th><th></th></tr></thead>
+    <tbody>
+    {% for r in all_rows %}
+    <tr>
+      <td><a href="{% url 'initiative' r.init.entity_id %}">{{ r.init.name }}</a></td>
+      {% include "tracker/partials/home_rows.html" %}
+      <td class="small">{{ r.stage }}</td>
+      <td class="small">{{ r.init.target_go_live|short_date }}</td>
+      <td class="small">{{ r.owner }}</td>
+      <td class="small">{% include "tracker/partials/home_due.html" %}</td>
+      <td class="home-row-actions">{% if r.can_check_in %}<button type="button" class="btn btn-sm btn-outline-primary" hx-get="{% url 'check_in' r.init.entity_id %}" hx-target="#modal" hx-swap="innerHTML">Check in</button>{% endif %}</td>
+    </tr>
+    {% empty %}<tr><td colspan="7" class="muted">{% if q %}No initiatives match "{{ q }}".{% else %}No initiatives yet.{% endif %}</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endif %}
+{% endblock %}

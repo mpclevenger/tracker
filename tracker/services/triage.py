@@ -8,13 +8,13 @@ from django.conf import settings
 from core import clock
 from meetings import services as meetings_services
 from tracker.models import ControlImpact, Initiative, RAG_ORDER, RiskItem, Visibility
-from tracker.services import checkin, lifecycle, rag, snapshots, watch
+from tracker.services import checkin, comments, lifecycle, rag, snapshots, watch
 from tracker.services.bundle import Bundle, load_bundles
 
-GROUPS = ["Decide", "Confirm", "Review", "Chase", "Watch"]
+GROUPS = ["Decide", "Confirm", "Review", "Chase", "Comments", "Watch"]
 SERIES_DUE_DAYS = {"weekly": 7, "biweekly": 14, "monthly": 31}
 GROUP_LABELS = {"Decide": "Intake decisions", "Confirm": "Risks to confirm", "Review": "Reviews due", "Chase": "Overdue",
-                "Watch": "Watch list"}
+                "Watch": "Watch list", "Comments": "Comments to review"}
 
 
 @dataclass
@@ -53,11 +53,12 @@ class Row:
     ws: object = None  # workstream entity for per-workstream rows
     watch: bool = False  # watch list row: links to the watch item page
     series: object = None  # meeting series row: links to the series page
+    anchor: str = ""  # page anchor appended to the row link
 
 
 def triage(followups: bool = True, scope: str = "all", watch_list: bool = True) -> tuple[dict, list]:
     """Returns ({group: [Row]}, [quiet bundles]); followups=False drops follow-up rows; scope="sox" keeps SOX applicable ones; watch_list=False drops watch rows."""
-    rows = {g: [] for g in GROUPS if g != "Watch"}  # "Watch" is added only when it has rows
+    rows = {g: [] for g in GROUPS if g not in ("Watch", "Comments")}  # these two are added only when they have rows
     t = rag.thresholds()
     snap = snapshots.last_snapshot()
     snap_rows = snapshots.rows_by_entity(snap) if snap else {}
@@ -150,11 +151,33 @@ def triage(followups: bool = True, scope: str = "all", watch_list: bool = True) 
                 rows["Watch"].append(Row(WatchRef(item), ", ".join(chips), None,
                                          "red" if overdue else "amber", "review", watch=True))
 
+    for row in _comment_rows(current, watch_list, scope):
+        rows.setdefault("Comments", []).append(row)
+
     for g in GROUPS:
         for r in rows.get(g, []):
             flagged.add(r.bundle.entity_id)
     quiet = [b for b in active if b.entity_id not in flagged]
     return rows, quiet
+
+
+def _comment_rows(current, watch_list, scope):
+    """One Review-style row per pending comment on an in-scope initiative or watch item."""
+    pending = comments.pending()
+    items = {i.entity_id: i for i in current.filter(entity_id__in=[c.target_entity for c in pending])}
+    watch_items = {}
+    if watch_list:
+        found = Initiative.objects.watch_items().filter(entity_id__in=[c.target_entity for c in pending])
+        watch_items = {i.entity_id: i for i in (found.filter(sox_applicable=True) if scope == "sox" else found)}
+    out = []
+    for c in pending:
+        item = items.get(c.target_entity) or watch_items.get(c.target_entity)
+        if item is None:
+            continue
+        is_watch = item.status in Initiative.WATCH_STATUSES
+        ref = WatchRef(item)
+        out.append(Row(ref, f"{item.name}: {c.text[:60]}", c.posted_at, "grey", "review", watch=is_watch, anchor="#comments"))
+    return out
 
 
 def _missed_series_rows(in_scope_ids, scope):

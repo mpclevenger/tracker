@@ -38,7 +38,7 @@ def test_intake_by_new_user_creates_proposed_initiative(client):
     switch(client, NEW)
     assert client.get(reverse("intake")).status_code == 200
     resp = client.post(reverse("intake"), INTAKE)
-    assert resp.status_code == 302 and resp["Location"] == reverse("my_initiative")
+    assert resp.status_code == 302 and resp["Location"] == reverse("home")
     init = vault()
     assert init.status == "proposed" and init.phase == "Intake" and init.submitted_at
     assert init.owner_emp_id == NEW

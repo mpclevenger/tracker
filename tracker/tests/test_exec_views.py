@@ -31,12 +31,12 @@ def test_anonymous_forbidden(client, settings):
     assert client.get("/").status_code == 403
 
 
-def test_owner_redirected_from_home(client, settings, make_initiative):
+def test_owner_lands_on_home(client, settings, make_initiative):
     make_initiative(name="Mine", owner="OWN1")
     settings.DEV_DEFAULT_EMP_ID = "OWN1"
     resp = client.get("/")
-    assert resp.status_code == 302
-    assert resp["Location"] == reverse("my_initiative")
+    assert resp.status_code == 200
+    assert "My initiatives" in resp.content.decode()
     assert client.get("/exec/").status_code == 403
 
 

@@ -1,0 +1,1 @@
+{% if can_edit %}{% url edit_name eid as edit_url %}No {{ what }} yet. <a href="{{ edit_url }}?next={{ tab_url|urlencode }}">Add one</a>{% else %}None{% endif %}

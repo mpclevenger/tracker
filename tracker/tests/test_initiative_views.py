@@ -295,7 +295,7 @@ def test_owner_view(seeded, as_user):
     html = html_of(as_user(OWNER), seeded)
     assert "Check in" in html and "Derived RAG" not in html
     assert "Sponsor pushing for January" not in html
-    assert reverse("edit_risks", args=[seeded.entity_id]) in html_of(as_user(OWNER), seeded, "plan")
+    assert reverse("edit_risks", args=[seeded.entity_id]) in html_of(as_user(OWNER), seeded, "risks")
 
 
 def test_auditor_sees_override_badge(seeded, as_user):

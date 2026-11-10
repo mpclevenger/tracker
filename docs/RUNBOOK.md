@@ -2,11 +2,15 @@
 
 How to run the tracker day to day. Almost everything is done in the app; nothing here needs code.
 
+## Where things are
+Everything starts on **Home**: your initiatives, all initiatives, and anything waiting for Tech Risk. Open an initiative and use the **Edit** button on the section you want to change. Less-used pages (Watch list, Meetings, Audit, Lifecycle & guidance) are under **More**.
+
 ## Weekly (about 30 minutes)
 1. **Workbench › Triage.** Work top to bottom: Intake decisions, Risks to confirm, Reviews due, Overdue.
 2. For each initiative you met with this week, open it and post the check-in (**Check in** button): dates, % complete, control readiness, new risks.
 3. Accept or send back any submitted evidence (initiative › Lifecycle tab, or the Risks tab for controls).
 4. Overdue check-ins: **Copy reminder**, then paste it into email or Teams.
+5. **Comments to review**: publish or dismiss each comment people left on initiative pages.
 
 ## Monthly leadership pack
 1. **Workbench › Snapshots.** Clear the readiness checklist: highlights set, overrides reviewed, missed check-ins followed up.

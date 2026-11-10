@@ -158,3 +158,11 @@ initiatives, default stage). Meetings can belong to one. "Log next meeting" pref
 the series' open follow-ups so they can be closed in the same save. The series page shows all instances
 newest first plus open follow-ups; the initiative Meetings tab groups by series. A series with no meeting
 logged within its cadence shows under Overdue on the Workbench (ad hoc never does).
+
+## Ease of use and comments (Nov 10)
+- Home (`/`) lists initiatives: action buttons (Post a check-in, New initiative / Propose an initiative, Log a
+  meeting, Add watch item), My initiatives, All initiatives with search, and Waiting for Tech Risk (the intake
+  queue stays). Top nav: Home, Exec summary, Workbench, More.
+- Every initiative section has its own Edit button; editors return to the same tab (`next`, validated).
+- Comments: anyone who can view an initiative or watch item can post; comments stay hidden until Tech Risk
+  publishes them (Workbench "Comments to review"). Never on the exec summary or in snapshots.

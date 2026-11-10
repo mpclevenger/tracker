@@ -199,10 +199,10 @@ def intake_form(request):
                 messages.success(request, f'Created "{init.name}". Accept it to make it active.')
                 return redirect("initiative", init.entity_id)
             messages.success(request, "Submitted to the Tech Risk queue")
-            return redirect("my_initiative")
+            return redirect("home")
     else:
         form = IntakeForm(initial={"owner_emp_id": actor.emp_id})
-    return render(request, "tracker/intake.html", {"nav": "intake", "form": form, "phase_rows": form.phase_rows(),
+    return render(request, "tracker/intake.html", {"nav": "home", "form": form, "phase_rows": form.phase_rows(),
         "oversight_fields": form.oversight_fields(),
     })
 

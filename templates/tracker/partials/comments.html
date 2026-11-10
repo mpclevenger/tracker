@@ -1,0 +1,35 @@
+{% load ui %}
+<section class="ini-sec" id="comments">
+  <h2 class="h6">Comments</h2>
+  {% for c in comments.pending %}
+  <div class="cmt">
+    <div class="cmt-meta">{{ c.shown_name|default:"Someone" }} · {{ c.posted_at|short_date }} · <span class="cmt-wait">Waiting for review</span></div>
+    <div>{{ c.text|linebreaksbr }}</div>
+    {% if actor.is_tech_risk %}
+    <div class="cmt-actions">
+      <form method="post" action="{% url 'review_comment' c.entity_id 'publish' %}" class="m-0">{% csrf_token %}<button class="btn btn-sm btn-primary">Publish</button></form>
+      <form method="post" action="{% url 'review_comment' c.entity_id 'dismiss' %}" class="m-0">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary">Dismiss</button></form>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% for c in comments.published %}
+  <div class="cmt">
+    <div class="cmt-meta">{{ c.shown_name }} · {{ c.posted_at|short_date }}</div>
+    <div>{{ c.text|linebreaksbr }}</div>
+  </div>
+  {% empty %}{% if not comments.pending %}<p class="muted small mb-2">No comments yet.</p>{% endif %}{% endfor %}
+  {% if comments.dismissed %}
+  <details class="mt-2">
+    <summary class="small muted">Dismissed · {{ comments.dismissed|length }}</summary>
+    {% for c in comments.dismissed %}
+    <div class="cmt"><div class="cmt-meta">{{ c.shown_name }} · {{ c.posted_at|short_date }}</div><div>{{ c.text|linebreaksbr }}</div></div>
+    {% endfor %}
+  </details>
+  {% endif %}
+  <form method="post" action="{{ comment_post_url }}" class="mt-2">{% csrf_token %}
+    <textarea name="text" rows="2" maxlength="1000" required class="form-control form-control-sm" placeholder="Add a comment" aria-label="Comment"></textarea>
+    <button class="btn btn-sm btn-outline-primary mt-2">Post comment</button>
+    <span class="small muted ms-2">Tech Risk reviews comments before they're shown.</span>
+  </form>
+</section>

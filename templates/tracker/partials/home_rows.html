@@ -1,0 +1,3 @@
+{% load ui %}
+<td>{% if r.closed %}<span class="pill outline">{{ r.init.get_status_display }}</span>
+  {% else %}{% rag_pill r.ev.effective %}{% if r.ev.chip %} <span class="ini-why" title="{{ r.ev.rule }}">{{ r.ev.chip }}</span>{% endif %}{% endif %}</td>

@@ -533,3 +533,25 @@ class CurationEvent(models.Model):
 
     class Meta:
         ordering = ["-at"]
+
+
+class Comment(VersionedModel):
+    """A comment on an initiative or watch item; shown to everyone only once Tech Risk publishes it."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        PUBLISHED = "published", "Published"
+        DISMISSED = "dismissed", "Dismissed"
+
+    MAX_LENGTH = 1000
+
+    target_entity = models.UUIDField(db_index=True, help_text="Initiative or watch item entity")
+    commenter_emp_id = models.CharField(max_length=32, db_index=True)
+    author_name = models.CharField(max_length=120, blank=True, help_text="Display name when posted")
+    text = models.TextField(max_length=MAX_LENGTH)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
+    reviewed_by = models.CharField(max_length=32, blank=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta(VersionedModel.Meta):
+        pass

@@ -1,10 +1,14 @@
 from django.urls import path
 
-from tracker.views import audit, exec_summary, initiative, intake, lifecycle, owner, watch, workbench
+from tracker.views import audit, comments, exec_summary, home, initiative, intake, lifecycle, owner, watch, workbench
 
 urlpatterns = [
-    # exec summary (landing for Tech Risk, Senior Management, Auditor)
-    path("", exec_summary.home, name="home"),
+    path("", home.home, name="home"),
+    path("checkin/", home.check_in_pick, name="check_in_pick"),
+    path("comments/<uuid:entity_id>/<str:action>/", comments.review_comment, name="review_comment"),
+    path("initiative/<uuid:entity_id>/comment/", comments.comment_initiative, name="comment_initiative"),
+    path("watch/<uuid:entity_id>/comment/", comments.comment_watch, name="comment_watch"),
+    # exec summary (Tech Risk, Senior Management, Auditor)
     path("exec/", exec_summary.exec_summary, name="exec_summary"),
     path("share/<str:token>/", exec_summary.shared, name="exec_shared"),
     # initiative page (all roles; owner sees edit affordances)

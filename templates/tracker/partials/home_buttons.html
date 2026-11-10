@@ -1,0 +1,19 @@
+{% load ui %}
+<div class="home-actions">
+  {% if pickable %}
+  <details class="home-pick">
+    <summary class="btn btn-primary btn-lg">Post a check-in</summary>
+    <form method="get" action="{% url 'check_in_pick' %}" class="home-pick-panel">
+      <label class="form-label small mb-1" for="pick-init">Initiative</label>
+      <select id="pick-init" name="initiative" class="form-select form-select-sm mb-2" hx-get="{% url 'check_in_pick' %}" hx-trigger="change" hx-target="#modal" hx-swap="innerHTML">
+        <option value="" disabled selected>Choose one</option>
+        {% for i in pickable %}<option value="{{ i.entity_id }}">{{ i.name }}</option>{% endfor %}
+      </select>
+      <button class="btn btn-primary btn-sm">Go</button>
+    </form>
+  </details>
+  {% endif %}
+  {% if can_propose %}<a class="btn btn-outline-primary btn-lg" href="{% url 'intake' %}">{% if actor.is_tech_risk %}New initiative{% else %}Propose an initiative{% endif %}</a>{% endif %}
+  {% if can_log_meeting %}<a class="btn btn-outline-primary btn-lg" href="{% url 'meetings:new' %}">Log a meeting</a>{% endif %}
+  {% if can_add_watch %}<a class="btn btn-outline-primary btn-lg" href="{% url 'watch_add' %}">Add watch item</a>{% endif %}
+</div>

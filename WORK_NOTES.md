@@ -161,6 +161,11 @@ Design is frozen in `docs/DESIGN.md` (from the clickable demo, Nov 5). Page buil
 - Fixed flaky SOX pill test (it depended on tile order); exec tiles now sort by status, then name.
 - Checks: pytest 619 passed; series page screenshot reviewed.
 
+## Ease of use + comments (Nov 10)
+- Home page, shorter nav with More menu, per-section Edit buttons with `next` back to the tab, back link to
+  Home, Comment model (migration 0012) with Tech Risk publish/dismiss and a triage group.
+- Checks: pytest 643 passed; Home and initiative screenshots reviewed.
+
 ## Known gaps / follow-ups
 - `override_history` returns all version rows on purpose (full audit trail); the modal shows one row per override.
 - Shared read-only link hides nav by passing an anonymous actor; a `{% block nav %}` would be cleaner.

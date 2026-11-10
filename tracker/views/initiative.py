@@ -16,6 +16,7 @@ from tracker.models import (
     ControlImpact, Delegation, Initiative, Overlay, OversightLevel, Rag, RagOverride, RiskItem, Visibility,
 )
 from tracker.services import checkin, curation, rag, timeline
+from tracker.services import comments as comments_svc
 from tracker.services import lifecycle as lc
 from tracker.services.bundle import load_bundle
 from tracker.views.common import close_modal_response, get_initiative, is_htmx, require_tech_risk_or_403
@@ -109,6 +110,8 @@ def _tab_context(request, tab, initiative, bundle, ev, layers):
             if request.modules["meetings"] else [],
             "why_rows": _why_rows(ev, layers, bundle),
             "ws_rows": _ws_rows(bundle, ev),
+            "comments": comments_svc.for_viewer(actor, eid),
+            "comment_post_url": reverse("comment_initiative", args=[eid]),
         })
     elif tab == "exec":
         overlays = [o for o in bundle.overlays if o.visibility in layers]
@@ -121,6 +124,8 @@ def _tab_context(request, tab, initiative, bundle, ev, layers):
         })
     elif tab == "plan":
         ctx["timeline_svg"] = timeline.initiative_svg(bundle, layers)
+        guidance = lc.current_guidance()
+        ctx["phase_rows"] = [(p, lc.stage_info(p.stage, guidance).name) for p in bundle.phases]
     elif tab == "risks":
         ctx.update({
             "risks": [r for r in bundle.risks if r.visibility in layers],
@@ -163,6 +168,8 @@ def detail(request, entity_id):
         "tabs": tabs,
         "tab": tab,
         "can_edit": actor.can_edit_initiative(entity_id),
+        "tab_url": _tab_url(entity_id, tab),
+        "open_checkin": request.GET.get("checkin") == "1",
         "can_check_in": actor.can_check_in(entity_id) and initiative.status == Initiative.Status.ACTIVE,
         "show_history_link": actor.is_tech_risk or actor.is_auditor,
         "s": _summary(initiative, bundle),

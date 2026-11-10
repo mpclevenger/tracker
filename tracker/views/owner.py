@@ -9,6 +9,7 @@ from django.db import transaction
 from django.forms import formset_factory
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
+from django.urls import reverse
 
 from core.auth.decorators import forbidden
 from core.models import Person
@@ -24,7 +25,7 @@ from tracker.models import (
 )
 from tracker.services import checkin, rag, workstreams as ws_svc
 from tracker.services.bundle import load_bundle
-from tracker.views.common import get_initiative, require_editor_or_403
+from tracker.views.common import get_initiative, require_editor_or_403, safe_next
 from tracker.visibility import initiatives_for, items_for
 
 DATE_WIDGET = {"type": "date"}
@@ -64,8 +65,9 @@ def _current(eid):
     return Initiative.objects.get_current(eid)
 
 
-def _back(init):
-    return redirect("initiative", entity_id=init.entity_id)
+def _back(request, init):
+    """Back to `next` when it is safe, else the initiative page."""
+    return redirect(safe_next(request) or reverse("initiative", args=[init.entity_id]))
 
 
 # --- my initiative -------------------------------------------------------------------
@@ -82,8 +84,8 @@ def my_initiative(request):
     if not inits:
         return forbidden(request, "You do not own or help run any initiative.")
     if len(inits) == 1:
-        return _back(inits[0])
-    return render(request, "tracker/my_initiative_choose.html", {"nav": "my", "initiatives": inits})
+        return redirect("initiative", entity_id=inits[0].entity_id)
+    return render(request, "tracker/my_initiative_choose.html", {"nav": "home", "initiatives": inits})
 
 
 # --- check-in ------------------------------------------------------------------------
@@ -239,10 +241,11 @@ def edit_initiative(request, entity_id):
                 messages.success(request, "Initiative details saved.")
             else:
                 messages.info(request, "No changes to save.")
-            return _back(init)
+            return _back(request, init)
     else:
         form = InitiativeForm(initial=initial, **kw)
-    return render(request, "tracker/owner_edit_initiative.html", {"nav": "my", "initiative": init, "form": form})
+    return render(request, "tracker/owner_edit_initiative.html", {
+        "nav": "home", "initiative": init, "form": form, "next": safe_next(request)})
 
 
 # --- row editors ---------------------------------------------------------------------
@@ -570,14 +573,14 @@ def _edit_rows(request, entity_id, key):
                     )
                 else:
                     messages.info(request, "No changes to save.")
-                return _back(init)
+                return _back(request, init)
     else:
         formset = build()
     columns = cfg["columns"]
     rows = [(form, [form[name] for name, _ in columns]) for form in formset]
     ctx = {
-        "nav": "my", "initiative": init, "title": cfg["title"], "help": cfg["help"], "columns": columns,
-        "formset": formset, "rows": rows, "key": key,
+        "nav": "home", "initiative": init, "title": cfg["title"], "help": cfg["help"], "columns": columns,
+        "formset": formset, "rows": rows, "key": key, "next": safe_next(request),
     }
     return render(request, "tracker/owner_edit_rows.html", ctx)
 

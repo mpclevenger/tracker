@@ -1,0 +1,4 @@
+<div class="ini-sec-head">
+  <h2 class="h6">{{ title }}</h2>
+  {% if can_edit %}{% url edit_name eid as edit_url %}<a class="btn btn-outline-secondary btn-sm" href="{{ edit_url }}?next={{ tab_url|urlencode }}">Edit</a>{% endif %}
+</div>

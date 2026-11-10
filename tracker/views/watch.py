@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.http import Http404
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_http_methods, require_POST
 
 from core import clock
@@ -12,7 +13,7 @@ from core.auth.decorators import forbidden
 from core.models import Person
 from tracker.lifecycle import QUESTION_KEYS, oversight_questions
 from tracker.models import Initiative, OversightLevel
-from tracker.services import curation, watch as svc
+from tracker.services import comments as comments_svc, curation, watch as svc
 from tracker.views.common import require_tech_risk_or_403, resolve_scope, scope_context
 from tracker.views.owner import date_field, style_fields
 
@@ -112,6 +113,8 @@ def watch_item(request, entity_id):
         "impacts": [labels[k] for k in QUESTION_KEYS if getattr(item, k)],
         "can_edit": request.actor.is_tech_risk and item.status == "watch",
         "can_history": request.actor.is_tech_risk or request.actor.is_auditor,
+        "comments": comments_svc.for_viewer(request.actor, entity_id),
+        "comment_post_url": reverse("comment_watch", args=[entity_id]),
     })
 
 
